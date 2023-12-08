@@ -6,6 +6,6 @@
     Title="{Loc 's3d-menu-title'}"
     Resizable="False">
 
-    <BoxContainer Orientation="Vertical">
+    <BoxContainer Name="MainScreen" Orientation="Vertical">
     </BoxContainer>
 </controls:FancyWindow>
