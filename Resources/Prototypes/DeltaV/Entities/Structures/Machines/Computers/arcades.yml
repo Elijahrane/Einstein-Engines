@@ -1,7 +1,7 @@
 - type: entity
   parent: ArcadeBase
-  id: ArcadeNyan3D
-  name: Nyan 3D
+  id: ArcadeS3D
+  name: S3D # The S stands for space. Could be renamed maybe.
   description: Get Psyched!
   components:
   - type: Sprite
@@ -11,9 +11,9 @@
       state: arcade
     - map: ["computerLayerScreen"]
       state: blockgame
-  - type: BlockGameArcade
+  - type: S3DArcade
   - type: ActivatableUI
-    key: enum.BlockGameUiKey.Key
+    key: enum.S3DUiKey.Key
   - type: ActivatableUIRequiresPower
   - type: WiresPanel
   - type: Wires
@@ -21,9 +21,9 @@
     boardName: wires-board-name-arcade
   - type: UserInterface
     interfaces:
-      - key: enum.BlockGameUiKey.Key
-        type: BlockGameBoundUserInterface
+      - key: enum.S3DUiKey.Key
+        type: S3DBoundUserInterface
       - key: enum.WiresUiKey.Key
         type: WiresBoundUserInterface
-  - type: Computer
-    board: BlockGameArcadeComputerCircuitboard
+  # - type: Computer
+  #   board: BlockGameArcadeComputerCircuitboard
