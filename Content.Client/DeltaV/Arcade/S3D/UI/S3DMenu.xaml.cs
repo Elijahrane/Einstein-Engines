@@ -17,8 +17,8 @@ public sealed partial class S3DMenu : FancyWindow
         RobustXamlLoader.Load(this);
 
         // Is it possible to add arbitrary (i.e. non-default) controls like this in XAML? This stuff is so undocumented...
-        var graph = new S3DRenderer(_resourceCache, new List<int>());
-        graph.SetSize = new Vector2(450, 250);
+        var graph = new S3DRenderer();
+        graph.SetSize = new Vector2(800, 600);
         MainScreen.AddChild(graph);
     }
 }
