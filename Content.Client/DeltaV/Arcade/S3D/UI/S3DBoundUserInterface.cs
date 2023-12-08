@@ -1,4 +1,4 @@
-namespace Content.Client.DeltaV.Arcade.UI;
+namespace Content.Client.DeltaV.Arcade.S3D.UI;
 
 public sealed class S3DBoundUserInterface : BoundUserInterface
 {
@@ -11,7 +11,7 @@ public sealed class S3DBoundUserInterface : BoundUserInterface
     {
         base.Open();
 
-        _menu = new S3DMenu(this);
+        _menu = new S3DMenu();
         _menu.OpenCentered();
     }
 }
