@@ -1,16 +1,17 @@
 using Robust.Shared.Player;
 
-namespace Content.Server.DeltaV.Arcade.S3D;
+namespace Content.Shared.DeltaV.Arcade.S3D;
 
 [RegisterComponent]
-
-/// <summary>
-/// Unlike other arcade machines, most of the logic is going to be on the client here.
-/// The server will still handle saving states and giving them to spectators or letting players
-/// continue an already started game.
-/// </summary>
 public sealed partial class S3DArcadeComponent : Component
 {
+    /// <summary>
+    /// Current state of the game.
+    /// </summary>
+    public S3DState State;
+
+    public float Accumulator = 0f;
+
     /// <summary>
     /// The player currently playing the active session of S3D.
     /// </summary>

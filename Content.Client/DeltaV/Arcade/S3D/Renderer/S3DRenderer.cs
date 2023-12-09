@@ -10,10 +10,38 @@ namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
 public sealed class S3DRenderer : Control
 {
-    private S3DState _state;
-    public S3DRenderer(S3DState state)
+    // TODO: this shouldn't be here.
+    private readonly int[,] _worldMap =
     {
-        _state = state;
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
+        {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,0,0,0,1},
+        {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,2,2,0,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,4,0,0,0,0,5,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,4,0,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+    };
+    private S3DArcadeComponent _comp;
+    public S3DRenderer(S3DArcadeComponent comp)
+    {
+        _comp = comp;
     }
 
     protected override void Draw(DrawingHandleScreen handle)
@@ -30,12 +58,12 @@ public sealed class S3DRenderer : Control
         for (int x = 0; x < this.Size.X; x++)
         {
             double cameraX = 2 * (double) x / this.Size.X - 1; //x-coordinate in camera space
-            double rayDirX = _state.DirX + _state.PlaneX * cameraX;
-            double rayDirY = _state.DirY + _state.PlaneY * cameraX;
+            double rayDirX = _comp.State.DirX + _comp.State.PlaneX * cameraX;
+            double rayDirY = _comp.State.DirY + _comp.State.PlaneY * cameraX;
 
             //which box of the map we're in
-            int mapX = (int) _state.PosX;
-            int mapY = (int) _state.PosY;
+            int mapX = (int) _comp.State.PosX;
+            int mapY = (int) _comp.State.PosY;
 
             //length of ray from current position to next x or y-side
             double sideDistX;
@@ -67,22 +95,22 @@ public sealed class S3DRenderer : Control
             if (rayDirX < 0)
             {
                 stepX = -1;
-                sideDistX = (float) (_state.PosX - mapX) * deltaDistX;
+                sideDistX = (float) (_comp.State.PosX - mapX) * deltaDistX;
             }
             else
             {
                 stepX = 1;
-                sideDistX = (float) (mapX + 1.0 - _state.PosX) * deltaDistX;
+                sideDistX = (float) (mapX + 1.0 - _comp.State.PosX) * deltaDistX;
             }
             if (rayDirY < 0)
             {
                 stepY = -1;
-                sideDistY = (float) (_state.PosY - mapY) * deltaDistY;
+                sideDistY = (float) (_comp.State.PosY - mapY) * deltaDistY;
             }
             else
             {
                 stepY = 1;
-                sideDistY = (mapY + 1.0 - _state.PosY) * deltaDistY;
+                sideDistY = (mapY + 1.0 - _comp.State.PosY) * deltaDistY;
             }
             //perform DDA
             while (hit == 0)
@@ -101,7 +129,7 @@ public sealed class S3DRenderer : Control
                     side = 1;
                 }
                 //Check if ray has hit a wall
-                if (_state.WorldMap[mapX, mapY] > 0)
+                if (_worldMap[mapX, mapY] > 0)
                 {
                     hit = 1;
                 }
@@ -126,7 +154,7 @@ public sealed class S3DRenderer : Control
 
             // //choose wall color
             // Color color;
-            // switch (_state.WorldMap[mapX, mapY])
+            // switch (_comp.State.WorldMap[mapX, mapY])
             // {
             //     case 1: color = Color.Red; break; //red
             //     case 2: color = Color.Green; break; //green

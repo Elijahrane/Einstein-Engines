@@ -11,7 +11,7 @@ public sealed class S3DBoundUserInterface : BoundUserInterface
     {
         base.Open();
 
-        _menu = new S3DMenu();
+        _menu = new S3DMenu(this);
         _menu.OpenCentered();
     }
 }

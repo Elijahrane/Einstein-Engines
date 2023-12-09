@@ -12,15 +12,19 @@ namespace Content.Client.DeltaV.Arcade.S3D.UI;
 public sealed partial class S3DMenu : FancyWindow
 {
     [Dependency] private readonly IResourceCache _resourceCache = default!;
-    public S3DMenu()
+    [Dependency] private readonly IEntityManager _entMan = default!;
+
+    public S3DMenu(S3DBoundUserInterface owner)
     {
         IoCManager.InjectDependencies(this);
         RobustXamlLoader.Load(this);
 
-        // Is it possible to add arbitrary (i.e. non-default) controls like this in XAML? This stuff is so undocumented...
-        var renderer = new S3DRenderer(new S3DState(22, 12, -1, 0, 0, 0.66));
-        renderer.SetSize = new Vector2(800, 600);
-        renderer.CanKeyboardFocus = true;
-        MainScreen.AddChild(renderer);
+        if (_entMan.TryGetComponent<S3DArcadeComponent>(owner.Owner, out var comp))
+        {
+            var renderer = new S3DRenderer(comp);
+            renderer.SetSize = new Vector2(800, 600);
+            renderer.CanKeyboardFocus = true;
+            MainScreen.AddChild(renderer);
+        }
     }
 }
