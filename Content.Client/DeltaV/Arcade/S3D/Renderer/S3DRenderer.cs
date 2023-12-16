@@ -5,6 +5,8 @@ using Robust.Client.UserInterface;
 using Robust.Shared.Collections;
 using Content.Shared.DeltaV.Arcade.S3D;
 using Color = Robust.Shared.Maths.Color;
+using System.Linq;
+using YamlDotNet.Core.Tokens;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -48,13 +50,13 @@ public sealed class S3DRenderer : Control
     {
         base.Draw(handle);
         var verts = Raycast();
+        var values = new ReadOnlySpan<DrawVertexUV2DColor>(verts);
 
-        int i = 0;
-        handle.DrawPrimitives(DrawPrimitiveTopology.LineList, verts.Span, Color.Red);
+        handle.DrawPrimitives(DrawPrimitiveTopology.LineList, Texture.White, values);
     }
-    private ValueList<Vector2> Raycast()
+    private DrawVertexUV2DColor[] Raycast()
     {
-        var verts = new ValueList<Vector2>();
+        List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
         for (int x = 0; x < this.Size.X; x++)
         {
             double cameraX = 2 * (double) x / this.Size.X - 1; //x-coordinate in camera space
@@ -152,27 +154,26 @@ public sealed class S3DRenderer : Control
             float drawEnd = lineHeight / 2 + this.Size.Y / 2;
             if (drawEnd >= this.Size.Y) drawEnd = this.Size.Y - 1;
 
-            // //choose wall color
-            // Color color;
-            // switch (_comp.State.WorldMap[mapX, mapY])
-            // {
-            //     case 1: color = Color.Red; break; //red
-            //     case 2: color = Color.Green; break; //green
-            //     case 3: color = Color.Blue; break; //blue
-            //     case 4: color = Color.White; break; //white
-            //     default: color = Color.Yellow; break; //yellow
-            // }
+            //choose wall color
+            Color color;
+            switch (_worldMap[mapX, mapY])
+            {
+                case 1: color = Color.Red; break; //red
+                case 2: color = Color.Green; break; //green
+                case 3: color = Color.Blue; break; //blue
+                case 4: color = Color.White; break; //white
+                default: color = Color.Yellow; break; //yellow
+            }
 
-            // if (side == 1)
-            // {
-            //     color = Color.FromSrgb(new Color(color.R / 2, color.G / 2, color.B / 2, 1));
-            // }
+            if (side == 1)
+            {
+                color = Color.FromSrgb(new Color(color.R / 2, color.G / 2, color.B / 2, 1));
+            }
 
             /// Give 2 coordinates: Where to start drawing and where to end.
-            verts.Add(new Vector2(x + 1, drawStart)); // x
-            verts.Add(new Vector2(x + 1, drawEnd)); // y
+            verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawStart), color)); // x
+            verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawEnd), color)); // y
         }
-        return verts;
+        return verts.ToArray();
     }
 }
-
