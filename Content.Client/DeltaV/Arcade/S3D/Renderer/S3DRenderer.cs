@@ -12,6 +12,8 @@ namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
 public sealed class S3DRenderer : Control
 {
+    private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
+
     // TODO: this shouldn't be here.
     private readonly int[,] _worldMap =
     {
@@ -49,12 +51,13 @@ public sealed class S3DRenderer : Control
     protected override void Draw(DrawingHandleScreen handle)
     {
         base.Draw(handle);
-        var verts = Raycast();
-        var values = new ReadOnlySpan<DrawVertexUV2DColor>(verts);
+        Raycast();
+
+        var values = new ReadOnlySpan<DrawVertexUV2DColor>(_buffer);
 
         handle.DrawPrimitives(DrawPrimitiveTopology.LineList, Texture.White, values);
     }
-    private DrawVertexUV2DColor[] Raycast()
+    private void Raycast()
     {
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
         for (int x = 0; x < this.Size.X; x++)
@@ -174,6 +177,6 @@ public sealed class S3DRenderer : Control
             verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawStart), color)); // x
             verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawEnd), color)); // y
         }
-        return verts.ToArray();
+        _buffer = verts.ToArray();
     }
 }
