@@ -44,9 +44,17 @@ public sealed class S3DRenderer : Control
 
         Logger.Error("Drawing " + _buffer.Length + " points.");
 
-        var values = new ReadOnlySpan<DrawVertexUV2DColor>(_buffer);
+        // There's a size limit of 65532 elements.
+        int i = 0;
+        while (i < _buffer.Length)
+        {
+            if (_buffer.Length > i + 65530)
+                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _buffer.AsSpan(i, i + 65530));
+            else
+                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _buffer.AsSpan(i));
 
-        handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, values);
+            i += 65531;
+        }
     }
     private void Raycast()
     {

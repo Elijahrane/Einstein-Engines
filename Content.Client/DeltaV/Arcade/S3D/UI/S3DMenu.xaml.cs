@@ -49,7 +49,9 @@ public sealed partial class S3DMenu : FancyWindow
     }
 
     /// <summary>
-    /// Texture.GetPixel is very inefficient, so I made a new data structure where you store a 2D array of RGB values. Someone should come up with a name.
+    /// We need to load the texture into CPU memory because it's orders of magnitude faster if we are going to be accessing
+    /// thousands of texels individually. Texture.GetPixel is so unperformant it's kind of useless unless you need a single
+    /// pixel once.
     /// </summary>
     private Vector3[,] TextureToArray(Texture texture)
     {
