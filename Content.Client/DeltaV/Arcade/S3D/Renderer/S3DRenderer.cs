@@ -23,6 +23,7 @@ public sealed class S3DRenderer : Control
     private S3DArcadeComponent _comp;
     private int[,] _worldMap;
     private readonly Vector3[,] _wallAtlas;
+    private long _tick = 0;
     public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Vector3[,] wallAtlas)
     {
         _resourceCache = resourceCache;
@@ -34,16 +35,19 @@ public sealed class S3DRenderer : Control
     {
         base.Draw(handle);
 
-        // TODO: As game logic is locked to 30 fps, we don't need to draw if there hasn't been a frame update.
-
-        var watch = new System.Diagnostics.Stopwatch();
-        watch.Start();
-        Raycast();
-        watch.Stop();
-        if (watch.ElapsedMilliseconds > 1000 / 30)
+        if (_comp.State.Tick > _tick)
         {
-            Logger.Error("Over target! Raycasted in " + watch.ElapsedMilliseconds + " ms");
+            var watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
+            Raycast();
+            watch.Stop();
+            if (watch.ElapsedMilliseconds > 1000 / 30)
+            {
+                Logger.Error("Over target! Raycasted in " + watch.ElapsedMilliseconds + " ms");
+            }
         }
+
+        _tick = _comp.State.Tick;
 
         // There's a size limit of 65532 elements.
         int i = 0;
