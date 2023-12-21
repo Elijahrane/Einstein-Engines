@@ -40,9 +40,10 @@ public sealed class S3DRenderer : Control
         watch.Start();
         Raycast();
         watch.Stop();
-        Logger.Error("Raycasted in " + watch.ElapsedMilliseconds + " ms");
-
-        Logger.Error("Drawing " + _buffer.Length + " points.");
+        if (watch.ElapsedMilliseconds > 1000 / 30)
+        {
+            Logger.Error("Over target! Raycasted in " + watch.ElapsedMilliseconds + " ms");
+        }
 
         // There's a size limit of 65532 elements.
         int i = 0;
@@ -59,6 +60,8 @@ public sealed class S3DRenderer : Control
     private void Raycast()
     {
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
+        Color color = Color.White;
+        Vector2 vec = Vector2.One;
 
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
         for (int x = 0; x < Size.X; x++)
@@ -157,11 +160,6 @@ public sealed class S3DRenderer : Control
                 wallX = _comp.State.PosX + perpWallDist * rayDirX;
             wallX -= Math.Floor(wallX); // this leaves just the remainder
 
-            Color color = Color.Pink;
-            // Logger.Error("Pink R: " + color.R);
-            // Logger.Error("Ping G: " + color.G);
-            // Logger.Error("Pink B: " + color.B);
-
             int i = 0;
             while (i < lineHeight)
             {
@@ -171,9 +169,18 @@ public sealed class S3DRenderer : Control
                 color.R = rgb.X;
                 color.G = rgb.Y;
                 color.B = rgb.Z;
+
                 if (side)
-                    color = Color.FromSrgb(new Color(color.R / 2, color.G / 2, color.B / 2, 1));
-                verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawStart + i), color)); // x
+                {
+                    color.R /= 2;
+                    color.G /= 2;
+                    color.B /= 2;
+                }
+
+                vec.X = x + 1;
+                vec.Y = drawStart + i;
+
+                verts.Add(new DrawVertexUV2DColor(vec, color)); // x
                 i++;
             }
         }

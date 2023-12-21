@@ -65,7 +65,6 @@ public sealed partial class S3DMenu : FancyWindow
             var color = texture.GetPixel(x, y);
             var vec = new Vector3(color.R, color.G, color.B);
             img[x - 1, y - 1] = vec;
-            Logger.Error("Vector written in image " + (x - 1) + " " + (y - 1) + ": " + img[x - 1, y - 1]);
             x++;
 
             if (x == 64)
