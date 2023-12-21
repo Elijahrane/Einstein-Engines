@@ -4,8 +4,9 @@ using Robust.Client.UserInterface;
 using Content.Shared.DeltaV.Arcade.S3D;
 using Color = Robust.Shared.Maths.Color;
 using Robust.Client.ResourceManagement;
-using Content.Client.Resources;
-using Vector3 = Robust.Shared.Maths.Vector3;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using Robust.Client.Utility;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -22,9 +23,9 @@ public sealed class S3DRenderer : Control
     private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
     private S3DArcadeComponent _comp;
     private int[,] _worldMap;
-    private readonly Vector3[,] _wallAtlas;
+    private readonly Image<Rgba32> _wallAtlas;
     private long _tick = 0;
-    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Vector3[,] wallAtlas)
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas)
     {
         _resourceCache = resourceCache;
         _comp = comp;
@@ -66,6 +67,7 @@ public sealed class S3DRenderer : Control
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
         Color color = Color.White;
         Vector2 vec = Vector2.One;
+        var span = _wallAtlas.GetPixelSpan();
 
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
         for (int x = 0; x < Size.X; x++)
@@ -168,11 +170,13 @@ public sealed class S3DRenderer : Control
             while (i < lineHeight)
             {
                 var ratio = (float) i / lineHeight;
-                var rgb = _wallAtlas[(int) Math.Clamp(wallX * 64, 1, Size.X), Math.Clamp((int) (64 * ratio), 1, 64)];
 
-                color.R = rgb.X;
-                color.G = rgb.Y;
-                color.B = rgb.Z;
+                var texX = (int) Math.Clamp(wallX * 64, 1, Size.X);
+                var texY = Math.Clamp((int) (64 * ratio), 1, 64);
+
+                var rgb = span[texX + (texY - 1) * _wallAtlas.Width];
+
+                color = new Color(rgb.R, rgb.G, rgb.B);
 
                 if (side)
                 {
