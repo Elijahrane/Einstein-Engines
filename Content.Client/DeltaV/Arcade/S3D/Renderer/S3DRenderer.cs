@@ -6,8 +6,14 @@ using Color = Robust.Shared.Maths.Color;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
+/// <summary>
+/// Controls the rendering for the S3D arcade. Logic is in the client's S3DArcadeSystem.cs
+/// </summary>
 public sealed class S3DRenderer : Control
 {
+    /// <summary>
+    /// Buffer for walls.
+    /// </summary>
     private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
     private S3DArcadeComponent _comp;
     private int[,] _worldMap;
@@ -20,6 +26,9 @@ public sealed class S3DRenderer : Control
     protected override void Draw(DrawingHandleScreen handle)
     {
         base.Draw(handle);
+
+        // TODO: As game logic is locked to 30 fps, we don't need to draw if there hasn't been a frame update.
+
         Raycast();
 
         var values = new ReadOnlySpan<DrawVertexUV2DColor>(_buffer);
@@ -28,10 +37,12 @@ public sealed class S3DRenderer : Control
     }
     private void Raycast()
     {
+        // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
+
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
-        for (int x = 0; x < this.Size.X; x++)
+        for (int x = 0; x < Size.X; x++)
         {
-            double cameraX = 2 * (double) x / this.Size.X - 1; //x-coordinate in camera space
+            double cameraX = 2 * (double) x / Size.X - 1; //x-coordinate in camera space
             double rayDirX = _comp.State.DirX + _comp.State.PlaneX * cameraX;
             double rayDirY = _comp.State.DirY + _comp.State.PlaneY * cameraX;
 
@@ -52,8 +63,6 @@ public sealed class S3DRenderer : Control
             //unlike (dirX, dirY) is not 1, however this does not matter, only the
             //ratio between deltaDistX and deltaDistY matters, due to the way the DDA
             //stepping further below works. So the values can be computed as below.
-            // Division through zero is prevented, even though technically that's not
-            // needed in C++ with IEEE 754 floating point values.
             double deltaDistX = Math.Abs(1 / rayDirX);
             double deltaDistY = Math.Abs(1 / rayDirY);
 
@@ -109,22 +118,18 @@ public sealed class S3DRenderer : Control
                 }
             }
 
-            //Calculate distance projected on camera direction. This is the shortest distance from the point where the wall is
-            //hit to the camera plane. Euclidean to center camera point would give fisheye effect!
-            //This can be computed as (mapX - posX + (1 - stepX) / 2) / rayDirX for side == 0, or same formula with Y
-            //for size == 1, but can be simplified to the code below thanks to how sideDist and deltaDist are computed:
-            //because they were left scaled to |rayDir|. sideDist is the entire length of the ray above after the multiple
-            //steps, but we subtract deltaDist once because one step more into the wall was taken above.
-            if (side == 0) perpWallDist = sideDistX - deltaDistX;
-            else perpWallDist = sideDistY - deltaDistY;
+            if (side == 0)
+                perpWallDist = sideDistX - deltaDistX;
+            else
+                perpWallDist = sideDistY - deltaDistY;
 
-            float lineHeight = (float) (this.Size.Y / perpWallDist);
+            float lineHeight = (float) (Size.Y / perpWallDist);
 
-            // the center should be at the centre of the screen.
-            float drawStart = -lineHeight / 2 + this.Size.Y / 2;
+            // the center should be at the center of the screen.
+            float drawStart = -lineHeight / 2 + Size.Y / 2;
             if (drawStart < 0) drawStart = 0;
-            float drawEnd = lineHeight / 2 + this.Size.Y / 2;
-            if (drawEnd >= this.Size.Y) drawEnd = this.Size.Y - 1;
+            float drawEnd = lineHeight / 2 + Size.Y / 2;
+            if (drawEnd >= Size.Y) drawEnd = Size.Y - 1;
 
             //choose wall color
             Color color;
