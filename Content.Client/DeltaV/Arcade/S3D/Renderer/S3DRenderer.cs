@@ -4,11 +4,8 @@ using Robust.Client.UserInterface;
 using Content.Shared.DeltaV.Arcade.S3D;
 using Color = Robust.Shared.Maths.Color;
 using Robust.Client.ResourceManagement;
-using System.Numerics;
 using Content.Client.Resources;
-using Robust.Client.Graphics;
-using Robust.Client.ResourceManagement;
-using Robust.Client.UserInterface;
+using Vector3 = Robust.Shared.Maths.Vector3;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -25,11 +22,13 @@ public sealed class S3DRenderer : Control
     private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
     private S3DArcadeComponent _comp;
     private int[,] _worldMap;
-    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap)
+    private readonly Vector3[,] _wallAtlas;
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Vector3[,] wallAtlas)
     {
         _resourceCache = resourceCache;
         _comp = comp;
         _worldMap = worldMap;
+        _wallAtlas = wallAtlas;
     }
     protected override void Draw(DrawingHandleScreen handle)
     {
@@ -37,7 +36,11 @@ public sealed class S3DRenderer : Control
 
         // TODO: As game logic is locked to 30 fps, we don't need to draw if there hasn't been a frame update.
 
+        var watch = new System.Diagnostics.Stopwatch();
+        watch.Start();
         Raycast();
+        watch.Stop();
+        Logger.Error("Raycasted in " + watch.ElapsedMilliseconds + " ms");
 
         Logger.Error("Drawing " + _buffer.Length + " points.");
 
@@ -48,7 +51,6 @@ public sealed class S3DRenderer : Control
     private void Raycast()
     {
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
-        Texture testText = _resourceCache.GetTexture("/Textures/DeltaV/Other/S3D/greystone.png");
 
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
         for (int x = 0; x < Size.X; x++)
@@ -147,13 +149,20 @@ public sealed class S3DRenderer : Control
                 wallX = _comp.State.PosX + perpWallDist * rayDirX;
             wallX -= Math.Floor(wallX); // this leaves just the remainder
 
-            Color color;
+            Color color = Color.Pink;
+            // Logger.Error("Pink R: " + color.R);
+            // Logger.Error("Ping G: " + color.G);
+            // Logger.Error("Pink B: " + color.B);
 
             int i = 0;
             while (i < lineHeight)
             {
-                float ratio = Math.Min(i / lineHeight, 1f);
-                color = testText.GetPixel((int) Math.Clamp(wallX * (float) testText.Size.X, 1, Size.X), Math.Clamp((int) (testText.Size.Y * ratio), 1, testText.Size.Y));
+                var ratio = (float) i / lineHeight;
+                var rgb = _wallAtlas[(int) Math.Clamp(wallX * 64, 1, Size.X), Math.Clamp((int) (64 * ratio), 1, 64)];
+
+                color.R = rgb.X;
+                color.G = rgb.Y;
+                color.B = rgb.Z;
                 if (side)
                     color = Color.FromSrgb(new Color(color.R / 2, color.G / 2, color.B / 2, 1));
                 verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawStart + i), color)); // x
