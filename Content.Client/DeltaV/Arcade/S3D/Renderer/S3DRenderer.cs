@@ -3,6 +3,12 @@ using Robust.Client.Graphics;
 using Robust.Client.UserInterface;
 using Content.Shared.DeltaV.Arcade.S3D;
 using Color = Robust.Shared.Maths.Color;
+using Robust.Client.ResourceManagement;
+using System.Numerics;
+using Content.Client.Resources;
+using Robust.Client.Graphics;
+using Robust.Client.ResourceManagement;
+using Robust.Client.UserInterface;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -11,18 +17,20 @@ namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 /// </summary>
 public sealed class S3DRenderer : Control
 {
+    private readonly IResourceCache _resourceCache;
+
     /// <summary>
     /// Buffer for walls.
     /// </summary>
     private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
     private S3DArcadeComponent _comp;
     private int[,] _worldMap;
-    public S3DRenderer(S3DArcadeComponent comp, int[,] worldMap)
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap)
     {
+        _resourceCache = resourceCache;
         _comp = comp;
         _worldMap = worldMap;
     }
-
     protected override void Draw(DrawingHandleScreen handle)
     {
         base.Draw(handle);
@@ -31,13 +39,16 @@ public sealed class S3DRenderer : Control
 
         Raycast();
 
+        Logger.Error("Drawing " + _buffer.Length + " points.");
+
         var values = new ReadOnlySpan<DrawVertexUV2DColor>(_buffer);
 
-        handle.DrawPrimitives(DrawPrimitiveTopology.LineList, Texture.White, values);
+        handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, values);
     }
     private void Raycast()
     {
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
+        Texture testText = _resourceCache.GetTexture("/Textures/DeltaV/Other/S3D/greystone.png");
 
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
         for (int x = 0; x < Size.X; x++)
@@ -73,7 +84,7 @@ public sealed class S3DRenderer : Control
             int stepY;
 
             int hit = 0; //was there a wall hit?
-            int side = 0; //was a NS or a EW wall hit?
+            bool side = false; //was a NS or a EW wall hit?
             //calculate step and initial sideDist
             if (rayDirX < 0)
             {
@@ -103,13 +114,13 @@ public sealed class S3DRenderer : Control
                 {
                     sideDistX += deltaDistX;
                     mapX += stepX;
-                    side = 0;
+                    side = false;
                 }
                 else
                 {
                     sideDistY += deltaDistY;
                     mapY += stepY;
-                    side = 1;
+                    side = true;
                 }
                 //Check if ray has hit a wall
                 if (_worldMap[mapX, mapY] > 0)
@@ -118,38 +129,36 @@ public sealed class S3DRenderer : Control
                 }
             }
 
-            if (side == 0)
+            if (!side)
                 perpWallDist = sideDistX - deltaDistX;
             else
                 perpWallDist = sideDistY - deltaDistY;
 
             float lineHeight = (float) (Size.Y / perpWallDist);
 
-            // the center should be at the center of the screen.
             float drawStart = -lineHeight / 2 + Size.Y / 2;
-            if (drawStart < 0) drawStart = 0;
-            float drawEnd = lineHeight / 2 + Size.Y / 2;
-            if (drawEnd >= Size.Y) drawEnd = Size.Y - 1;
+            if (drawStart < 0)
+                drawStart = 0;
 
-            //choose wall color
+            double wallX; //where exactly the wall was hit
+            if (!side)
+                wallX = _comp.State.PosY + perpWallDist * rayDirY;
+            else
+                wallX = _comp.State.PosX + perpWallDist * rayDirX;
+            wallX -= Math.Floor(wallX); // this leaves just the remainder
+
             Color color;
-            switch (_worldMap[mapX, mapY])
-            {
-                case 1: color = Color.Red; break; //red
-                case 2: color = Color.Green; break; //green
-                case 3: color = Color.Blue; break; //blue
-                case 4: color = Color.White; break; //white
-                default: color = Color.Yellow; break; //yellow
-            }
 
-            if (side == 1)
+            int i = 0;
+            while (i < lineHeight)
             {
-                color = Color.FromSrgb(new Color(color.R / 2, color.G / 2, color.B / 2, 1));
+                float ratio = Math.Min(i / lineHeight, 1f);
+                color = testText.GetPixel((int) Math.Clamp(wallX * (float) testText.Size.X, 1, Size.X), Math.Clamp((int) (testText.Size.Y * ratio), 1, testText.Size.Y));
+                if (side)
+                    color = Color.FromSrgb(new Color(color.R / 2, color.G / 2, color.B / 2, 1));
+                verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawStart + i), color)); // x
+                i++;
             }
-
-            /// Give 2 coordinates: Where to start drawing and where to end.
-            verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawStart), color)); // x
-            verts.Add(new DrawVertexUV2DColor(new Vector2(x + 1, drawEnd), color)); // y
         }
         _buffer = verts.ToArray();
     }

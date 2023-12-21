@@ -6,6 +6,7 @@ using Content.Shared.DeltaV.Arcade.S3D;
 using Content.Shared.Input;
 using FancyWindow = Content.Client.UserInterface.Controls.FancyWindow;
 using Robust.Client.UserInterface;
+using Robust.Client.ResourceManagement;
 
 namespace Content.Client.DeltaV.Arcade.S3D.UI;
 
@@ -13,6 +14,7 @@ namespace Content.Client.DeltaV.Arcade.S3D.UI;
 public sealed partial class S3DMenu : FancyWindow
 {
     [Dependency] private readonly IEntityManager _entMan = default!;
+    [Dependency] private readonly IResourceCache _resourceCache = default!;
 
     private readonly S3DBoundUserInterface _owner;
     public S3DMenu(S3DBoundUserInterface owner)
@@ -24,7 +26,7 @@ public sealed partial class S3DMenu : FancyWindow
 
         if (_entMan.TryGetComponent<S3DArcadeComponent>(owner.Owner, out var comp))
         {
-            var renderer = new S3DRenderer(comp, comp.WorldMap);
+            var renderer = new S3DRenderer(_resourceCache, comp, comp.WorldMap);
             renderer.SetSize = new Vector2(800, 600);
             renderer.CanKeyboardFocus = true;
             MainScreen.AddChild(renderer);

@@ -30,7 +30,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
 
         private void RunTick(S3DArcadeComponent component)
         {
-            Logger.Error("Input state: " + component.State.Input);
+            // Logger.Error("Input state: " + component.State.Input);
 
             if (component.State.Input.HasFlag(InputFlags.Left))
                 component.State = Rotate(component.State);
