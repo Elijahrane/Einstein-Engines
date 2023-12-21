@@ -49,7 +49,7 @@ public sealed class S3DRenderer : Control
         while (i < _buffer.Length)
         {
             if (_buffer.Length > i + 65530)
-                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _buffer.AsSpan(i, i + 65530));
+                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _buffer.AsSpan(i, 65530));
             else
                 handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _buffer.AsSpan(i));
 
