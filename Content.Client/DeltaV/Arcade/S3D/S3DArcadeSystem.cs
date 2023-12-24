@@ -1,4 +1,5 @@
 using Content.Shared.DeltaV.Arcade.S3D;
+using Robust.Client.State;
 
 namespace Content.Client.DeltaV.Arcade.S3D
 {
@@ -39,16 +40,34 @@ namespace Content.Client.DeltaV.Arcade.S3D
         private void HandleInput(S3DArcadeComponent component)
         {
             if (component.State.Input.HasFlag(InputFlags.Left))
-                component.State = Rotate(component.State);
+            {
+                if (component.State.Input.HasFlag(InputFlags.StrafeMod))
+                    Move(component, MoveDirection.Left);
+                else if (component.State.Input.HasFlag(InputFlags.SwitchMod))
+                {
+                    // SwitchWeapons();
+                }
+                else
+                    component.State = Rotate(component.State, false);
+            }
 
             if (component.State.Input.HasFlag(InputFlags.Right))
-                component.State = Rotate(component.State, true);
+            {
+                if (component.State.Input.HasFlag(InputFlags.StrafeMod))
+                    Move(component, MoveDirection.Right);
+                else if (component.State.Input.HasFlag(InputFlags.SwitchMod))
+                {
+                    // SwitchWeapons();
+                }
+                else
+                    component.State = Rotate(component.State, true);
+            }
 
             if (component.State.Input.HasFlag(InputFlags.Up))
                 Move(component);
 
             if (component.State.Input.HasFlag(InputFlags.Down))
-                Move(component, true);
+                Move(component, MoveDirection.Down);
         }
 
         private S3DState Rotate(S3DState state, bool invert = false)
@@ -67,24 +86,47 @@ namespace Content.Client.DeltaV.Arcade.S3D
             return state;
         }
 
-        private void Move(S3DArcadeComponent component, bool invert = false)
+        private void Move(S3DArcadeComponent component, MoveDirection dir = MoveDirection.Up)
         {
-            if (!invert)
+            switch(dir)
             {
-                if (component.WorldMap[(int) (component.State.PosX + _wallDeadzone + component.State.DirX * _moveSpeed), (int) component.State.PosY] == 0)
-                    component.State.PosX += component.State.DirX * _moveSpeed;
+                case MoveDirection.Up:
+                    if (component.WorldMap[(int) (component.State.PosX + _wallDeadzone + component.State.DirX * _moveSpeed), (int) component.State.PosY] == 0)
+                        component.State.PosX += component.State.DirX * _moveSpeed;
 
-                if (component.WorldMap[(int) component.State.PosX, (int) (component.State.PosY + _wallDeadzone + component.State.DirY * _moveSpeed)] == 0)
-                    component.State.PosY += component.State.DirY * _moveSpeed;
-            }
-            else
-            {
-                if (component.WorldMap[(int) (component.State.PosX - _wallDeadzone - component.State.DirX * _moveSpeed), (int) component.State.PosY] == 0)
-                    component.State.PosX -= component.State.DirX * _moveSpeed;
+                    if (component.WorldMap[(int) component.State.PosX, (int) (component.State.PosY + _wallDeadzone + component.State.DirY * _moveSpeed)] == 0)
+                        component.State.PosY += component.State.DirY * _moveSpeed;
+                    break;
+                case MoveDirection.Down:
+                    if (component.WorldMap[(int) (component.State.PosX - _wallDeadzone - component.State.DirX * _moveSpeed), (int) component.State.PosY] == 0)
+                        component.State.PosX -= component.State.DirX * _moveSpeed;
 
-                if (component.WorldMap[(int) component.State.PosX, (int) (component.State.PosY - _wallDeadzone - component.State.DirY * _moveSpeed)] == 0)
-                    component.State.PosY -= component.State.DirY * _moveSpeed;
+                    if (component.WorldMap[(int) component.State.PosX, (int) (component.State.PosY - _wallDeadzone - component.State.DirY * _moveSpeed)] == 0)
+                        component.State.PosY -= component.State.DirY * _moveSpeed;
+                    break;
+                case MoveDirection.Right:
+                    if (component.WorldMap[(int) (component.State.PosX + _wallDeadzone + component.State.DirY * _moveSpeed), (int) component.State.PosY] == 0)
+                        component.State.PosX += component.State.DirY * _moveSpeed;
+
+                    if (component.WorldMap[(int) component.State.PosX, (int) (component.State.PosY + _wallDeadzone - component.State.DirX * _moveSpeed)] == 0)
+                        component.State.PosY -= component.State.DirX * _moveSpeed;
+                    break;
+                case MoveDirection.Left:
+                    if (component.WorldMap[(int) (component.State.PosX + _wallDeadzone - component.State.DirY * _moveSpeed), (int) component.State.PosY] == 0)
+                        component.State.PosX -= component.State.DirY * _moveSpeed;
+
+                    if (component.WorldMap[(int) component.State.PosX, (int) (component.State.PosY + _wallDeadzone + component.State.DirX * _moveSpeed)] == 0)
+                        component.State.PosY += component.State.DirX * _moveSpeed;
+                    break;
             }
+        }
+
+        private enum MoveDirection : byte
+        {
+            Up,
+            Down,
+            Left,
+            Right
         }
     }
 }

@@ -53,10 +53,10 @@ public sealed class S3DBoundUserInterface : BoundUserInterface
         {
             _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.StrafeMod);
         }
-        else if (function == ContentKeyFunctions.Arcade3 && !_comp.State.Input.HasFlag(InputFlags.SwitchMod))
-        {
-            _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.SwitchMod);
-        }
+        // else if (function == ContentKeyFunctions.Arcade3 && !_comp.State.Input.HasFlag(InputFlags.SwitchMod))
+        // {
+        //     _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.SwitchMod);
+        // }
     }
 
     public void UnregisterKeyPress(BoundKeyFunction function)
@@ -88,9 +88,9 @@ public sealed class S3DBoundUserInterface : BoundUserInterface
         {
             _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.StrafeMod);
         }
-        else if (function == ContentKeyFunctions.Arcade3 && _comp.State.Input.HasFlag(InputFlags.SwitchMod))
-        {
-            _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.SwitchMod);
-        }
+        // else if (function == ContentKeyFunctions.Arcade3 && _comp.State.Input.HasFlag(InputFlags.SwitchMod))
+        // {
+        //     _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.SwitchMod);
+        // }
     }
 }
