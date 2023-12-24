@@ -16,13 +16,8 @@ namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 public sealed class S3DRenderer : Control
 {
     private readonly IResourceCache _resourceCache;
-
     private const int InternalResX = 320;
     private const int InternalResY = 240;
-
-    /// <summary>
-    /// Buffer for walls.
-    /// </summary>
     private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
     private S3DArcadeComponent _comp;
     private int[,] _worldMap;
@@ -47,7 +42,7 @@ public sealed class S3DRenderer : Control
             watch.Stop();
             if (watch.ElapsedMilliseconds > 1000 / 30)
             {
-                Logger.Error("Over target! Raycasted in " + watch.ElapsedMilliseconds + " ms");
+                Logger.Warning("Over target! Raycasted in " + watch.ElapsedMilliseconds + " ms");
             }
         }
 
@@ -89,14 +84,6 @@ public sealed class S3DRenderer : Control
             double sideDistY;
 
             //length of ray from one x or y-side to next x or y-side
-            //these are derived as:
-            //deltaDistX = sqrt(1 + (rayDirY * rayDirY) / (rayDirX * rayDirX))
-            //deltaDistY = sqrt(1 + (rayDirX * rayDirX) / (rayDirY * rayDirY))
-            //which can be simplified to abs(|rayDir| / rayDirX) and abs(|rayDir| / rayDirY)
-            //where |rayDir| is the length of the vector (rayDirX, rayDirY). Its length,
-            //unlike (dirX, dirY) is not 1, however this does not matter, only the
-            //ratio between deltaDistX and deltaDistY matters, due to the way the DDA
-            //stepping further below works. So the values can be computed as below.
             double deltaDistX = Math.Abs(1 / rayDirX);
             double deltaDistY = Math.Abs(1 / rayDirY);
 
@@ -106,7 +93,7 @@ public sealed class S3DRenderer : Control
             int stepX;
             int stepY;
 
-            int hit = 0; //was there a wall hit?
+            bool hit = false; //was there a wall hit?
             bool side = false; //was a NS or a EW wall hit?
             //calculate step and initial sideDist
             if (rayDirX < 0)
@@ -130,7 +117,7 @@ public sealed class S3DRenderer : Control
                 sideDistY = (mapY + 1.0 - _comp.State.PosY) * deltaDistY;
             }
             //perform DDA
-            while (hit == 0)
+            while (!hit)
             {
                 //jump to next map square, either in x-direction, or in y-direction
                 if (sideDistX < sideDistY)
@@ -148,7 +135,7 @@ public sealed class S3DRenderer : Control
                 //Check if ray has hit a wall
                 if (_worldMap[mapX, mapY] > 0)
                 {
-                    hit = 1;
+                    hit = true;
                 }
             }
 
@@ -168,13 +155,13 @@ public sealed class S3DRenderer : Control
                 wallX = _comp.State.PosX + perpWallDist * rayDirX;
             wallX -= Math.Floor(wallX); // this leaves just the remainder
 
-            int i = 0;
+            int i = 1;
             while (i < lineHeight)
             {
                 var ratio = i / lineHeight;
 
-                var texX = (int) Math.Clamp(wallX * 64, 1, InternalResX);
-                var texY = Math.Clamp((int) (64 * ratio), 1, 64);
+                var texX = (int) (wallX * 64);
+                var texY = (int) Math.Max(64 * ratio, 1);
 
                 var rgb = span[texX + 64 * (_worldMap[mapX, mapY] - 1) + (texY - 1) * _wallAtlas.Width];
 
@@ -188,13 +175,11 @@ public sealed class S3DRenderer : Control
                 }
 
                 // TODO: This should take into account UI scale Cvars also.
-                // Also if there's a simpler way to scale lmk
                 int scaleIncrementor = 1;
                 while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
                 {
-                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1
-                    vec.Y = (drawStart + i) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0
-                    // yeah these work for any positive integer
+                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                    vec.Y = (drawStart + i) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
 
                     if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
                         verts.Add(new DrawVertexUV2DColor(vec, color));
