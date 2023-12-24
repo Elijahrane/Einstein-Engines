@@ -60,7 +60,7 @@ public sealed partial class S3DMenu : FancyWindow
     {
         var img = new Vector4[64, 64];
 
-        if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/greystone.png", out var stream))
+        if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/atlas.png", out var stream))
         {
             Logger.Error("Failed to load wall atlas for S3D!");
             return new Image<Rgba32>(64, 64);

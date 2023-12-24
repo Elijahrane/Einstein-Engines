@@ -169,12 +169,12 @@ public sealed class S3DRenderer : Control
             int i = 0;
             while (i < lineHeight)
             {
-                var ratio = (float) i / lineHeight;
+                var ratio = i / lineHeight;
 
                 var texX = (int) Math.Clamp(wallX * 64, 1, Size.X);
                 var texY = Math.Clamp((int) (64 * ratio), 1, 64);
 
-                var rgb = span[texX + (texY - 1) * _wallAtlas.Width];
+                var rgb = span[texX + 64 * (_worldMap[mapX, mapY] - 1) + (texY - 1) * _wallAtlas.Width];
 
                 color = new Color(rgb.R, rgb.G, rgb.B);
 
