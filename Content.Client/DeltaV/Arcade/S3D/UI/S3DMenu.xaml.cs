@@ -32,7 +32,7 @@ public sealed partial class S3DMenu : FancyWindow
         if (_entMan.TryGetComponent<S3DArcadeComponent>(owner.Owner, out var comp))
         {
             var renderer = new S3DRenderer(_resourceCache, comp, comp.WorldMap, LoadWallAtlas());
-            renderer.SetSize = new Vector2(320, 240);
+            renderer.SetSize = new Vector2(640, 480);
             renderer.CanKeyboardFocus = true;
             MainScreen.AddChild(renderer);
         }

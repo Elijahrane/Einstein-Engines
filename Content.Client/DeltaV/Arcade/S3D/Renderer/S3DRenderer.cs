@@ -17,6 +17,9 @@ public sealed class S3DRenderer : Control
 {
     private readonly IResourceCache _resourceCache;
 
+    private const int InternalResX = 320;
+    private const int InternalResY = 240;
+
     /// <summary>
     /// Buffer for walls.
     /// </summary>
@@ -68,11 +71,12 @@ public sealed class S3DRenderer : Control
         Color color;
         Vector2 vec = Vector2.One;
         var span = _wallAtlas.GetPixelSpan();
+        int scaleFactor = 2;
 
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
-        for (int x = 0; x < Size.X; x++)
+        for (int x = 0; x < InternalResX; x++)
         {
-            double cameraX = 2 * (double) x / Size.X - 1; //x-coordinate in camera space
+            double cameraX = 2 * (double) x / InternalResX - 1; //x-coordinate in camera space
             double rayDirX = _comp.State.DirX + _comp.State.PlaneX * cameraX;
             double rayDirY = _comp.State.DirY + _comp.State.PlaneY * cameraX;
 
@@ -153,11 +157,9 @@ public sealed class S3DRenderer : Control
             else
                 perpWallDist = sideDistY - deltaDistY;
 
-            float lineHeight = (float) (Size.Y / perpWallDist);
+            float lineHeight = (float) (InternalResY / perpWallDist);
 
-            float drawStart = -lineHeight / 2 + Size.Y / 2;
-            // if (drawStart < 0)
-            //     drawStart = 0;
+            float drawStart = -lineHeight / 2 + InternalResY / 2;
 
             double wallX; //where exactly the wall was hit
             if (!side)
@@ -171,7 +173,7 @@ public sealed class S3DRenderer : Control
             {
                 var ratio = i / lineHeight;
 
-                var texX = (int) Math.Clamp(wallX * 64, 1, Size.X);
+                var texX = (int) Math.Clamp(wallX * 64, 1, InternalResX);
                 var texY = Math.Clamp((int) (64 * ratio), 1, 64);
 
                 var rgb = span[texX + 64 * (_worldMap[mapX, mapY] - 1) + (texY - 1) * _wallAtlas.Width];
@@ -185,11 +187,19 @@ public sealed class S3DRenderer : Control
                     color.B /= 2;
                 }
 
-                vec.X = x + 1;
-                vec.Y = drawStart + i;
+                // TODO: This should take into account UI scale Cvars also.
+                // Also if there's a simpler way to scale lmk
+                int scaleIncrementor = 1;
+                while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
+                {
+                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / 2) - 1); // 0 0 1 1
+                    vec.Y = (drawStart + i) * scaleFactor + (scaleIncrementor % 2); // 1 0 1 0
 
-                if (vec.Y > 0 && vec.Y < Size.Y)
-                    verts.Add(new DrawVertexUV2DColor(vec, color));
+                    if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
+                        verts.Add(new DrawVertexUV2DColor(vec, color));
+
+                    scaleIncrementor++;
+                }
 
                 i++;
             }
