@@ -38,8 +38,6 @@ namespace Content.Client.DeltaV.Arcade.S3D
 
         private void HandleInput(S3DArcadeComponent component)
         {
-            // Logger.Error("Input state: " + component.State.Input);
-
             if (component.State.Input.HasFlag(InputFlags.Left))
                 component.State = Rotate(component.State);
 

@@ -64,7 +64,7 @@ public sealed class S3DBoundUserInterface : BoundUserInterface
         {
             _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.Up);
         }
-        else if (function == ContentKeyFunctions.ArcadeDown && _comp.State.Input.HasFlag(InputFlags.Right))
+        else if (function == ContentKeyFunctions.ArcadeDown && _comp.State.Input.HasFlag(InputFlags.Down))
         {
             _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.Down);
         }
