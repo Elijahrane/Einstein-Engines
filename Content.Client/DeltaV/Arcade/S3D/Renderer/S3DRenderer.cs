@@ -65,7 +65,7 @@ public sealed class S3DRenderer : Control
     private void Raycast()
     {
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
-        Color color = Color.White;
+        Color color;
         Vector2 vec = Vector2.One;
         var span = _wallAtlas.GetPixelSpan();
 
@@ -156,8 +156,8 @@ public sealed class S3DRenderer : Control
             float lineHeight = (float) (Size.Y / perpWallDist);
 
             float drawStart = -lineHeight / 2 + Size.Y / 2;
-            if (drawStart < 0)
-                drawStart = 0;
+            // if (drawStart < 0)
+            //     drawStart = 0;
 
             double wallX; //where exactly the wall was hit
             if (!side)
@@ -188,7 +188,9 @@ public sealed class S3DRenderer : Control
                 vec.X = x + 1;
                 vec.Y = drawStart + i;
 
-                verts.Add(new DrawVertexUV2DColor(vec, color)); // x
+                if (vec.Y > 0 && vec.Y < Size.Y)
+                    verts.Add(new DrawVertexUV2DColor(vec, color));
+
                 i++;
             }
         }
