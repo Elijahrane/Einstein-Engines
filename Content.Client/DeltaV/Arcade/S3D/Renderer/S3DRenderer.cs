@@ -192,8 +192,9 @@ public sealed class S3DRenderer : Control
                 int scaleIncrementor = 1;
                 while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
                 {
-                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / 2) - 1); // 0 0 1 1
-                    vec.Y = (drawStart + i) * scaleFactor + (scaleIncrementor % 2); // 1 0 1 0
+                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1
+                    vec.Y = (drawStart + i) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0
+                    // yeah these work for any positive integer
 
                     if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
                         verts.Add(new DrawVertexUV2DColor(vec, color));
