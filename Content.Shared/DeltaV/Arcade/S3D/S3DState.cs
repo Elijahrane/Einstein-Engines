@@ -38,5 +38,8 @@ public enum InputFlags : byte
     Down = 1 << 1,
     Left = 1 << 2,
     Right = 1 << 3,
-    Fire = 1 << 4
+    Fire = 1 << 4,
+    Use = 1 << 5,
+    StrafeMod = 1 << 6,
+    SwitchMod = 1 << 7
 }

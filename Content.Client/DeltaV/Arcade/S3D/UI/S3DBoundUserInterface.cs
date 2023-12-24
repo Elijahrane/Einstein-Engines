@@ -41,9 +41,21 @@ public sealed class S3DBoundUserInterface : BoundUserInterface
         {
             _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.Up);
         }
-        else if (function == ContentKeyFunctions.ArcadeDown && !_comp.State.Input.HasFlag(InputFlags.Right))
+        else if (function == ContentKeyFunctions.ArcadeDown && !_comp.State.Input.HasFlag(InputFlags.Down))
         {
             _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.Down);
+        }
+        else if (function == ContentKeyFunctions.Arcade1 && !_comp.State.Input.HasFlag(InputFlags.Fire))
+        {
+            _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.Fire);
+        }
+        else if (function == ContentKeyFunctions.Arcade2 && !_comp.State.Input.HasFlag(InputFlags.StrafeMod))
+        {
+            _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.StrafeMod);
+        }
+        else if (function == ContentKeyFunctions.Arcade3 && !_comp.State.Input.HasFlag(InputFlags.SwitchMod))
+        {
+            _comp.State.Input = (InputFlags) ((int) _comp.State.Input + (int) InputFlags.SwitchMod);
         }
     }
 
@@ -67,6 +79,18 @@ public sealed class S3DBoundUserInterface : BoundUserInterface
         else if (function == ContentKeyFunctions.ArcadeDown && _comp.State.Input.HasFlag(InputFlags.Down))
         {
             _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.Down);
+        }
+        else if (function == ContentKeyFunctions.Arcade1 && _comp.State.Input.HasFlag(InputFlags.Fire))
+        {
+            _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.Fire);
+        }
+        else if (function == ContentKeyFunctions.Arcade2 && _comp.State.Input.HasFlag(InputFlags.StrafeMod))
+        {
+            _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.StrafeMod);
+        }
+        else if (function == ContentKeyFunctions.Arcade3 && _comp.State.Input.HasFlag(InputFlags.SwitchMod))
+        {
+            _comp.State.Input = (InputFlags) ((int) _comp.State.Input - (int) InputFlags.SwitchMod);
         }
     }
 }
