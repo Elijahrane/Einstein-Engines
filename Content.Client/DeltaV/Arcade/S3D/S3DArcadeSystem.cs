@@ -1,11 +1,13 @@
 using Content.Shared.DeltaV.Arcade.S3D;
 using Robust.Shared.ContentPack;
+using Robust.Client.ResourceManagement;
 
 namespace Content.Client.DeltaV.Arcade.S3D
 {
     public sealed partial class S3DArcadeSystem : SharedS3DArcadeSystem
     {
         [Dependency] private readonly IResourceManager _resourceManager = default!;
+        [Dependency] private readonly IResourceCache _resourceCache = default!;
         private const float UpdateRate = 0.03125f;
         private const float MoveSpeed = 0.008f;
         private const float WallDeadzone = 0.02f;
