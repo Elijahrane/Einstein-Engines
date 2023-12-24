@@ -6,7 +6,6 @@ using Robust.Shared.Input;
 public sealed class S3DBoundUserInterface : BoundUserInterface
 {
     [Dependency] private readonly IEntityManager _entMan = default!;
-
     private S3DMenu? _menu;
     private S3DArcadeComponent? _comp = null;
     public S3DBoundUserInterface(EntityUid owner, Enum uiKey) : base(owner, uiKey)
