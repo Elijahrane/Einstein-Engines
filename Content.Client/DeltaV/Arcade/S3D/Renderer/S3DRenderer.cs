@@ -24,14 +24,16 @@ public sealed class S3DRenderer : Control
     private int[,] _worldMap;
     private readonly Image<Rgba32> _wallAtlas;
     private readonly Image<Rgba32> _floorAtlas;
+    private readonly Image<Rgba32> _ceilingAtlas;
     private long _tick = 0;
-    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas)
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas)
     {
         _resourceCache = resourceCache;
         _comp = comp;
         _worldMap = worldMap;
         _wallAtlas = wallAtlas;
         _floorAtlas = floorAtlas;
+        _ceilingAtlas = ceilingAtlas;
     }
     protected override void Draw(DrawingHandleScreen handle)
     {
@@ -70,12 +72,13 @@ public sealed class S3DRenderer : Control
         Vector2 vec = Vector2.One;
         var wallSpan = _wallAtlas.GetPixelSpan();
         var floorSpan = _floorAtlas.GetPixelSpan();
+        var ceilingSpan = _ceilingAtlas.GetPixelSpan();
         int scaleFactor = 2;
 
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
 
         // Floor Casting
-        for (int y = 0; y < InternalResY; y++)
+        for (int y = InternalResY / 2; y < InternalResY; y++)
         {
             float rayDirX0 = (float) (_comp.State.DirX - _comp.State.PlaneX);
             float rayDirY0 = (float) (_comp.State.DirY - _comp.State.PlaneY);
@@ -105,18 +108,23 @@ public sealed class S3DRenderer : Control
                 floorX += floorStepX;
                 floorY += floorStepY;
 
-                var index = texX + 32 * (texY - 1) - 1;
-                var rgb = floorSpan[index];
-
-                color = new Color(rgb.R, rgb.G, rgb.B);
-
                 int scaleIncrementor = 1;
                 while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
                 {
+                    var rgbF = floorSpan[texX + 32 * (texY - 1) - 1];
+                    color = new Color(rgbF.R, rgbF.G, rgbF.B);
                     vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
                     vec.Y = y * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
 
-                    if (vec.Y > screenCenter * scaleFactor)
+                    if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
+                        verts.Add(new DrawVertexUV2DColor(vec, color));
+
+                    var rgbC = ceilingSpan[texX + 32 * (texY - 1) - 1];
+                    color = new Color(rgbC.R, rgbC.G, rgbC.B);
+                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                    vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+
+                    if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
                         verts.Add(new DrawVertexUV2DColor(vec, color));
 
                     scaleIncrementor++;
