@@ -7,6 +7,7 @@ using Robust.Client.ResourceManagement;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Robust.Client.Utility;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -22,13 +23,15 @@ public sealed class S3DRenderer : Control
     private S3DArcadeComponent _comp;
     private int[,] _worldMap;
     private readonly Image<Rgba32> _wallAtlas;
+    private readonly Image<Rgba32> _floorAtlas;
     private long _tick = 0;
-    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas)
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas)
     {
         _resourceCache = resourceCache;
         _comp = comp;
         _worldMap = worldMap;
         _wallAtlas = wallAtlas;
+        _floorAtlas = floorAtlas;
     }
     protected override void Draw(DrawingHandleScreen handle)
     {
@@ -65,10 +68,64 @@ public sealed class S3DRenderer : Control
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
         Color color;
         Vector2 vec = Vector2.One;
-        var span = _wallAtlas.GetPixelSpan();
+        var wallSpan = _wallAtlas.GetPixelSpan();
+        var floorSpan = _floorAtlas.GetPixelSpan();
         int scaleFactor = 2;
 
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
+
+        // Floor Casting
+        for (int y = 0; y < InternalResY; y++)
+        {
+            float rayDirX0 = (float) (_comp.State.DirX - _comp.State.PlaneX);
+            float rayDirY0 = (float) (_comp.State.DirY - _comp.State.PlaneY);
+            float rayDirX1 = (float) (_comp.State.DirX + _comp.State.PlaneX);
+            float rayDirY1 = (float) (_comp.State.DirY + _comp.State.PlaneY);
+
+            // Y-coordinates of the center of the screen
+            float screenCenter = InternalResY / 2;
+
+            // Difference between current row and screen center
+            var yPos = y - screenCenter;
+
+            // horizontal difference between the camera and floor
+            float distFloor = yPos == 0 ? 0f : screenCenter / yPos;
+
+            float floorStepX = distFloor * (rayDirX1 - rayDirX0) / InternalResX;
+            float floorStepY = distFloor * (rayDirY1 - rayDirY0) / InternalResX;
+
+            float floorX = (float) (_comp.State.PosX + distFloor * rayDirX0);
+            float floorY = (float) (_comp.State.PosY + distFloor * rayDirY0);
+
+            for (int x = 0; x < InternalResX; x++)
+            {
+                int texX = (int) (32 * (floorX - Math.Floor(floorX)) + 1);
+                int texY = (int) (32 * (floorY - Math.Floor(floorY)) + 1);
+
+                floorX += floorStepX;
+                floorY += floorStepY;
+
+                var index = texX + 32 * (texY - 1) - 1;
+                var rgb = floorSpan[index];
+
+                color = new Color(rgb.R, rgb.G, rgb.B);
+
+                int scaleIncrementor = 1;
+                while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
+                {
+                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                    vec.Y = y * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+
+                    if (vec.Y > screenCenter * scaleFactor)
+                        verts.Add(new DrawVertexUV2DColor(vec, color));
+
+                    scaleIncrementor++;
+                }
+            }
+
+        }
+
+        // Wall Casting
         for (int x = 0; x < InternalResX; x++)
         {
             double cameraX = 2 * (double) x / InternalResX - 1; //x-coordinate in camera space
@@ -148,6 +205,8 @@ public sealed class S3DRenderer : Control
 
             float drawStart = -lineHeight / 2 + InternalResY / 2;
 
+            float drawEnd = drawStart + lineHeight;
+
             double wallX; //where exactly the wall was hit
             if (!side)
                 wallX = _comp.State.PosY + perpWallDist * rayDirY;
@@ -163,7 +222,7 @@ public sealed class S3DRenderer : Control
                 var texX = (int) (wallX * 64);
                 var texY = (int) Math.Max(64 * ratio, 1);
 
-                var rgb = span[texX + 64 * (_worldMap[mapX, mapY] - 1) + (texY - 1) * _wallAtlas.Width];
+                var rgb = wallSpan[texX + 64 * (_worldMap[mapX, mapY] - 1) + (texY - 1) * _wallAtlas.Width];
 
                 color = new Color(rgb.R, rgb.G, rgb.B);
 

@@ -1,0 +1,4 @@
+Due to specifics of rendering, these are loaded as images, not capital T Textures in the Robust Toolbox sense. As such, There's no RSI.
+
+Credits for the images are as follows:
+(insert credits here when placeholder is over)
