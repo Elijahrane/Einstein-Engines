@@ -477,6 +477,12 @@ binds:
 - function: Arcade3
   type: State
   key: Z
+- function: Arcade2 #Downstream Change: add more familiar / comfortable alternate keys for Arcade2 and 3
+  type: State
+  key: Alt
+- function: Arcade3
+  type: State
+  key:  Control  #End change
 - function: OpenAbilitiesMenu
   type: State
   key: K
