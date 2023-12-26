@@ -9,7 +9,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
     {
         public S3DRenderer NewRenderer(S3DArcadeComponent component)
         {
-            return new S3DRenderer(_resourceCache, component, component.WorldMap, LoadWallAtlas(), LoadFloorAtlas(), LoadCeilingAtlas());
+            return new S3DRenderer(_resourceCache, component, component.WorldMap, LoadWallAtlas(), LoadFloorAtlas(), LoadCeilingAtlas(), LoadSkybox());
         }
 
         /// <summary>
@@ -45,6 +45,17 @@ namespace Content.Client.DeltaV.Arcade.S3D
             {
                 Logger.Error("Failed to load ceiling atlas for S3D!");
                 return new Image<Rgba32>(32, 32);
+            }
+
+            return Image.Load<Rgba32>(stream);
+        }
+
+        private Image<Rgba32> LoadSkybox()
+        {
+            if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/skybox.png", out var stream))
+            {
+                Logger.Error("Failed to load skybox for S3D!");
+                return new Image<Rgba32>(320, 120);
             }
 
             return Image.Load<Rgba32>(stream);

@@ -7,7 +7,6 @@ using Robust.Client.ResourceManagement;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Robust.Client.Utility;
-using Microsoft.CodeAnalysis.Operations;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -25,8 +24,9 @@ public sealed class S3DRenderer : Control
     private readonly Image<Rgba32> _wallAtlas;
     private readonly Image<Rgba32> _floorAtlas;
     private readonly Image<Rgba32> _ceilingAtlas;
+    private readonly Image<Rgba32> _skybox;
     private long _tick = 0;
-    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas)
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas, Image<Rgba32> skybox)
     {
         _resourceCache = resourceCache;
         _comp = comp;
@@ -34,6 +34,7 @@ public sealed class S3DRenderer : Control
         _wallAtlas = wallAtlas;
         _floorAtlas = floorAtlas;
         _ceilingAtlas = ceilingAtlas;
+        _skybox = skybox;
     }
     protected override void Draw(DrawingHandleScreen handle)
     {
@@ -43,6 +44,7 @@ public sealed class S3DRenderer : Control
         {
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
+
             Raycast();
             watch.Stop();
             if (watch.ElapsedMilliseconds > 1000 / 30)
@@ -70,12 +72,42 @@ public sealed class S3DRenderer : Control
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
         Color color;
         Vector2 vec = Vector2.One;
+
         var wallSpan = _wallAtlas.GetPixelSpan();
         var floorSpan = _floorAtlas.GetPixelSpan();
         var ceilingSpan = _ceilingAtlas.GetPixelSpan();
-        int scaleFactor = 2;
+        var skyboxSpan = _skybox.GetPixelSpan();
 
+        var scrollFactor = (float) (new Vector2((float) _comp.State.DirX, (float) _comp.State.DirY).ToAngle().Degrees + 180f) / 360f;
+        scrollFactor -= (float) Math.Floor(scrollFactor);
+
+        int scaleFactor = 2;
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
+
+        // Skybox
+        for (int y = 0; y < InternalResY / 2; y++)
+        {
+            for (int x = 0; x < InternalResX; x++)
+            {
+                // changing divisor of X scales the image
+                var texX = (x / 2 + (int) (scrollFactor * 320)) % 320;
+
+                var rgb = skyboxSpan[texX + 320 * y];
+
+                color = new Color(rgb.R, rgb.G, rgb.B);
+
+                int scaleIncrementor = 1;
+                while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
+                {
+                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                    vec.Y = y * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+
+                    verts.Add(new DrawVertexUV2DColor(vec, color));
+
+                    scaleIncrementor++;
+                }
+            }
+        }
 
         // Floor Casting
         for (int y = InternalResY / 2; y < InternalResY; y++)
@@ -119,13 +151,14 @@ public sealed class S3DRenderer : Control
                     if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
                         verts.Add(new DrawVertexUV2DColor(vec, color));
 
-                    var rgbC = ceilingSpan[texX + 32 * (texY - 1) - 1];
-                    color = new Color(rgbC.R, rgbC.G, rgbC.B);
-                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                    vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+                    // Readd after wall / ceiling tile support.
+                    // var rgbC = ceilingSpan[texX + 32 * (texY - 1) - 1];
+                    // color = new Color(rgbC.R, rgbC.G, rgbC.B);
+                    // vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                    // vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
 
-                    if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                        verts.Add(new DrawVertexUV2DColor(vec, color));
+                    // if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
+                    //     verts.Add(new DrawVertexUV2DColor(vec, color));
 
                     scaleIncrementor++;
                 }
