@@ -90,7 +90,7 @@ public sealed class S3DRenderer : Control
             for (int x = 0; x < InternalResX; x++)
             {
                 // changing divisor of X scales the image
-                var texX = (x / 2 + (int) (scrollFactor * 320)) % 320;
+                var texX = (x + (int) ((1 - scrollFactor) * 320)) % 320;
 
                 var rgb = skyboxSpan[texX + 320 * y];
 
