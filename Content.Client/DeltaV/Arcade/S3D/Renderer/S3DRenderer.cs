@@ -47,7 +47,7 @@ public sealed class S3DRenderer : Control
 
             Raycast();
             watch.Stop();
-            if (watch.ElapsedMilliseconds > 1000 / 30)
+            if (watch.ElapsedMilliseconds > 1000 / 20)
             {
                 Logger.Warning("Over target! Raycasted in " + watch.ElapsedMilliseconds + " ms");
             }
@@ -85,6 +85,8 @@ public sealed class S3DRenderer : Control
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
 
         // Skybox
+        // TODO: Skip if level has no skybox
+        // TODO: See if this can be folded into the ceiling drawing part based on ceiling texture
         for (int y = 0; y < InternalResY / 2; y++)
         {
             for (int x = 0; x < InternalResX; x++)
