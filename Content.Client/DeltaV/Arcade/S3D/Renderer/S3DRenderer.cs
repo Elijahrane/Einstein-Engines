@@ -20,14 +20,14 @@ public sealed class S3DRenderer : Control
     private const int InternalResY = 240;
     private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
     private S3DArcadeComponent _comp;
-    private int[,] _worldMap;
+    private int[,,] _worldMap;
     private readonly Image<Rgba32> _wallAtlas;
     private readonly Image<Rgba32> _floorAtlas;
     private readonly Image<Rgba32> _ceilingAtlas;
     // TODO: Could this be just a straight texture? We're not skewing it at all, just scrolling.
     private readonly Image<Rgba32> _skybox;
     private long _tick = 0;
-    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas, Image<Rgba32> skybox)
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas, Image<Rgba32> skybox)
     {
         _resourceCache = resourceCache;
         _comp = comp;
@@ -234,7 +234,7 @@ public sealed class S3DRenderer : Control
                     side = true;
                 }
                 //Check if ray has hit a wall
-                if (_worldMap[mapX, mapY] > 0)
+                if (_worldMap[mapX, mapY, 0] > 0)
                 {
                     hit = true;
                 }
@@ -266,7 +266,7 @@ public sealed class S3DRenderer : Control
                 var texX = (int) (wallX * 64);
                 var texY = (int) Math.Max(64 * ratio, 1);
 
-                var rgb = wallSpan[texX + 64 * (_worldMap[mapX, mapY] - 1) + (texY - 1) * _wallAtlas.Width];
+                var rgb = wallSpan[texX + 64 * (_worldMap[mapX, mapY, 0] - 1) + (texY - 1) * _wallAtlas.Width];
 
                 color = new Color(rgb.R, rgb.G, rgb.B);
 

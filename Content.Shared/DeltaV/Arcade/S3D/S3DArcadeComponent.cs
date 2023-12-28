@@ -18,7 +18,7 @@ public sealed partial class S3DArcadeComponent : Component
 
     /// <summary>
     /// The walls, etc as an array.
-    public int[,] WorldMap =
+    public int[,,] WorldMap =
     {};
     public float Accumulator = 0f;
 

@@ -21,7 +21,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
         /// Path should be relative to the S3D maps folder.
         /// WARNING: this function looks awful because sandbox blocks basically every useful lib for this stuff
         /// </summary>
-        private bool LoadWorldMap(string name, [NotNullWhen(true)] out int[,]? worldMap)
+        private bool LoadWorldMap(string name, [NotNullWhen(true)] out int[,,]? worldMap)
         {
             worldMap = null;
 
@@ -76,7 +76,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
 
 
             // Initialize array
-            worldMap = new int[x, y];
+            worldMap = new int[x, y, 3];
 
             // fill out array from text
             for (int i = 0; i < y; i++)
@@ -87,7 +87,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
                 for (int rowI = 0; rowI < x; rowI++)
                 {
                     // this is easily the worst bit of code I have written in quite a long time
-                    worldMap[i, (x - 1) - rowI] = Int32.Parse(row.ElementAt(rowI).ToString());
+                    worldMap[i, (x - 1) - rowI, 0] = Int32.Parse(row.ElementAt(rowI).ToString());
                 }
             }
 
