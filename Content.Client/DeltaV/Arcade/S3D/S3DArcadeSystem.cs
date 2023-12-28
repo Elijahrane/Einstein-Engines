@@ -13,6 +13,23 @@ namespace Content.Client.DeltaV.Arcade.S3D
         private const float WallDeadzone = 0.02f;
         private const float RotSpeed = 0.005f;
 
+        public override void Initialize()
+        {
+            base.Initialize();
+            SubscribeLocalEvent<S3DArcadeComponent, LoadS3DMapEvent>(HandleLoadMap);
+        }
+        private void HandleLoadMap(EntityUid uid, S3DArcadeComponent component, LoadS3DMapEvent ev)
+        {
+            component.MapName = ev.MapName;
+            LoadWorldMap(ev.MapName, out var world);
+            if (world != null)
+            {
+                component.WorldMap = world;
+            }
+
+            // TODO: restart renderer
+        }
+
         public override void Update(float frameTime)
         {
             base.Update(frameTime);
