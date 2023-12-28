@@ -8,7 +8,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
     {
         [Dependency] private readonly IResourceManager _resourceManager = default!;
         [Dependency] private readonly IResourceCache _resourceCache = default!;
-        private const float UpdateRate = 0.03125f;
+        private const float UpdateRate = 0.05f;
         private const float MoveSpeed = 0.008f;
         private const float WallDeadzone = 0.02f;
         private const float RotSpeed = 0.005f;

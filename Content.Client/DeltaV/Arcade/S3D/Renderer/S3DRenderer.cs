@@ -24,6 +24,7 @@ public sealed class S3DRenderer : Control
     private readonly Image<Rgba32> _wallAtlas;
     private readonly Image<Rgba32> _floorAtlas;
     private readonly Image<Rgba32> _ceilingAtlas;
+    // TODO: Could this be just a straight texture? We're not skewing it at all, just scrolling.
     private readonly Image<Rgba32> _skybox;
     private long _tick = 0;
     public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas, Image<Rgba32> skybox)
