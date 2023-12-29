@@ -112,63 +112,6 @@ public sealed class S3DRenderer : Control
             }
         }
 
-        // Floor Casting
-        for (int y = InternalResY / 2; y < InternalResY; y++)
-        {
-            float rayDirX0 = (float) (_comp.State.DirX - _comp.State.PlaneX);
-            float rayDirY0 = (float) (_comp.State.DirY - _comp.State.PlaneY);
-            float rayDirX1 = (float) (_comp.State.DirX + _comp.State.PlaneX);
-            float rayDirY1 = (float) (_comp.State.DirY + _comp.State.PlaneY);
-
-            // Y-coordinates of the center of the screen
-            float screenCenter = InternalResY / 2;
-
-            // Difference between current row and screen center
-            var yPos = y - screenCenter;
-
-            // horizontal difference between the camera and floor
-            float distFloor = yPos == 0 ? 0f : screenCenter / yPos;
-
-            float floorStepX = distFloor * (rayDirX1 - rayDirX0) / InternalResX;
-            float floorStepY = distFloor * (rayDirY1 - rayDirY0) / InternalResX;
-
-            float floorX = (float) (_comp.State.PosX + distFloor * rayDirX0);
-            float floorY = (float) (_comp.State.PosY + distFloor * rayDirY0);
-
-            for (int x = 0; x < InternalResX; x++)
-            {
-                int texX = (int) (32 * (floorX - Math.Floor(floorX)) + 1);
-                int texY = (int) (32 * (floorY - Math.Floor(floorY)) + 1);
-
-                floorX += floorStepX;
-                floorY += floorStepY;
-
-                int scaleIncrementor = 1;
-                while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
-                {
-                    var rgbF = floorSpan[texX + 32 * (texY - 1) - 1];
-                    color = new Color(rgbF.R, rgbF.G, rgbF.B);
-                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                    vec.Y = y * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
-
-                    if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                        verts.Add(new DrawVertexUV2DColor(vec, color));
-
-                    // Readd after wall / ceiling tile support.
-                    // var rgbC = ceilingSpan[texX + 32 * (texY - 1) - 1];
-                    // color = new Color(rgbC.R, rgbC.G, rgbC.B);
-                    // vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                    // vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
-
-                    // if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                    //     verts.Add(new DrawVertexUV2DColor(vec, color));
-
-                    scaleIncrementor++;
-                }
-            }
-
-        }
-
         // Wall Casting
         for (int x = 0; x < InternalResX; x++)
         {
@@ -288,6 +231,84 @@ public sealed class S3DRenderer : Control
                         verts.Add(new DrawVertexUV2DColor(vec, color));
 
                     scaleIncrementor++;
+                }
+
+                // FLOOR CASTING
+                double floorXWall, floorYWall;
+
+                if (!side && rayDirX > 0)
+                {
+                    floorXWall = mapX;
+                    floorYWall = mapY + wallX;
+                }
+                else if (!side && rayDirX < 0)
+                {
+                    floorXWall = mapX + 1.0;
+                    floorYWall = mapY + wallX;
+                }
+                else if (side && rayDirY > 0)
+                {
+                    floorXWall = mapX + wallX;
+                    floorYWall = mapY;
+                }
+                else
+                {
+                    floorXWall = mapX + wallX;
+                    floorYWall = mapY + 1.0;
+                }
+
+                double distWall, distPlayer, currentDist;
+
+                distWall = perpWallDist;
+                distPlayer = 0.0;
+
+                for (int y = (int) drawEnd + 1; y < InternalResY; y++)
+                {
+                    currentDist = InternalResY / (2.0 * y - InternalResY); //you could make a small lookup table for this instead
+
+                    double weight = (currentDist - distPlayer) / (distWall - distPlayer);
+
+                    double currentFloorX = weight * floorXWall + (1.0 - weight) * _comp.State.PosX;
+                    double currentFloorY = weight * floorYWall + (1.0 - weight) * _comp.State.PosY;
+
+                    int floorTexX, floorTexY;
+                    floorTexX = (int) Math.Ceiling(32 * (currentFloorX - Math.Floor(currentFloorX)));
+                    floorTexY = (int) Math.Ceiling(32 * (currentFloorY - Math.Floor(currentFloorY)));
+
+                    // TODO: This should take into account UI scale Cvars also.
+                    int scaleIncrementorF = 1;
+                    while (scaleIncrementorF <= scaleFactor * 2) // 2 dimensions, so *2
+                    {
+                        // ceiling
+                        if (_worldMap[(int) currentFloorX, (int) currentFloorY, 1] != 0)
+                        {
+                            int cIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 1] - 1) + (floorTexY - 1) * _ceilingAtlas.Width - 1;
+                            cIndex = Math.Max(cIndex, 0);
+
+                            var rgbC = ceilingSpan[cIndex];
+                            color = new Color(rgbC.R, rgbC.G, rgbC.B);
+                            vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                            vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+
+                            if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
+                                verts.Add(new DrawVertexUV2DColor(vec, color));
+                        }
+
+                        // floor
+                        int fIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 2] - 1) + (floorTexY - 1) * _floorAtlas.Width - 1;
+
+                        fIndex = Math.Max(fIndex, 0);
+
+                        var rgbF = floorSpan[fIndex];
+                        color = new Color(rgbF.R, rgbF.G, rgbF.B);
+                        vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                        vec.Y = y * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+
+                        if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
+                            verts.Add(new DrawVertexUV2DColor(vec, color));
+
+                        scaleIncrementorF++;
+                    }
                 }
 
                 i++;

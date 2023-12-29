@@ -65,13 +65,10 @@ namespace Content.Client.DeltaV.Arcade.S3D
             bool foundY = false;
             while (!foundY)
             {
-                foreach (var line in lines)
-                {
-                    if (Char.IsNumber(line[^1]))
-                        y++;
-                    else
-                        foundY = true;
-                }
+                if (Char.IsNumber(lines[y][^1]))
+                    y++;
+                else
+                    foundY = true;
             }
 
 
@@ -87,7 +84,31 @@ namespace Content.Client.DeltaV.Arcade.S3D
                 for (int rowI = 0; rowI < x; rowI++)
                 {
                     // this is easily the worst bit of code I have written in quite a long time
-                    worldMap[i, (x - 1) - rowI, 0] = Int32.Parse(row.ElementAt(rowI).ToString());
+                    worldMap[i, x - 1 - rowI, 0] = Int32.Parse(row.ElementAt(rowI).ToString());
+                }
+            }
+
+            // ceilings
+            for (int i = 0; i < y; i++)
+            {
+                var offset = i + y + 1;
+                var row = Enumerable.Reverse(lines[offset]);
+
+                for (int rowI = 0; rowI < x; rowI++)
+                {
+                    worldMap[i, x - 1 - rowI, 1] = Int32.Parse(row.ElementAt(rowI).ToString());
+                }
+            }
+
+            // floors
+            for (int i = 0; i < y; i++)
+            {
+                var offset = i + 2 * (y + 1);
+                var row = Enumerable.Reverse(lines[offset]);
+
+                for (int rowI = 0; rowI < x; rowI++)
+                {
+                    worldMap[i, x - 1 - rowI, 2] = Int32.Parse(row.ElementAt(rowI).ToString());
                 }
             }
 
@@ -132,6 +153,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
             return Image.Load<Rgba32>(stream);
         }
 
+        // TODO: this can probably be a regular texture, it's not mapped
         private Image<Rgba32> LoadSkybox()
         {
             if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/skybox.png", out var stream))
