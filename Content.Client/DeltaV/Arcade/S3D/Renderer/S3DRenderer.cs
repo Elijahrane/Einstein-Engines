@@ -8,6 +8,8 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Robust.Client.Utility;
 using Content.Client.Resources;
+using Robust.Shared.Graphics;
+using System.Linq;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -21,10 +23,14 @@ public sealed class S3DRenderer : Control
     private const int InternalResY = 240;
     private const float FOV = 66; // note this is derived from PlaneX, but not calculated at run time here because why would we
     private const float ScaleFactor = 2;
-    private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
+    private const float CameraHeight = 0.5f;
+
+    // We do walls in the software rendering style because (1) it takes a few ms even with texture mapping while (2) it makes occlusion way, way, way easier
+    // These are colored points
+    private DrawVertexUV2DColor[] _wallBuffer = Array.Empty<DrawVertexUV2DColor>();
+    private readonly Image<Rgba32> _wallAtlas;
     private S3DArcadeComponent _comp;
     private int[,,] _worldMap;
-    private readonly Image<Rgba32> _wallAtlas;
     private readonly Image<Rgba32> _floorAtlas;
     private readonly Image<Rgba32> _ceilingAtlas;
     // TODO: Could this be just a straight texture? We're not skewing it at all, just scrolling.
@@ -61,15 +67,16 @@ public sealed class S3DRenderer : Control
 
         // There's a size limit of 65532 elements.
         int i = 0;
-        while (i < _buffer.Length)
+        while (i < _wallBuffer.Length)
         {
-            if (_buffer.Length > i + 65530)
-                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _buffer.AsSpan(i, 65530));
+            if (_wallBuffer.Length > i + 65530)
+                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _wallBuffer.AsSpan(i, 65530));
             else
-                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _buffer.AsSpan(i));
+                handle.DrawPrimitives(DrawPrimitiveTopology.PointList, Texture.White, _wallBuffer.AsSpan(i));
 
             i += 65531;
         }
+        DrawFloors(handle);
     }
 
     private void DrawSkybox(DrawingHandleScreen handle)
@@ -104,6 +111,46 @@ public sealed class S3DRenderer : Control
             handle.DrawTextureRectRegion(skybox, new UIBox2(0, 0, imgRatio * xScale, drawEnd), new UIBox2(new Vector2(skybox.Width - xFOV + overscroll, 0), new Vector2(skybox.Width, skybox.Height)));
             handle.DrawTextureRectRegion(skybox, new UIBox2(imgRatio * xScale, 0, xScale, drawEnd), new UIBox2(Vector2.Zero, new Vector2(overscroll, skybox.Height)));
         }
+    }
+
+    /// <summary>
+    /// https://en.wikipedia.org/wiki/Cock_and_ball_torture
+    /// </summary>
+    /// <param name="handle"></param>
+    private void DrawFloors(DrawingHandleBase handle)
+    {
+        DrawVertexUV2DColor[] xDebugBuffer = Array.Empty<DrawVertexUV2DColor>();
+
+        // FINDING X
+
+        // dir vector for center of camera
+        var dirVector = new Vector2((float) _comp.State.DirX, (float) _comp.State.DirY);
+
+        // dir vector from our pos to point
+        var pointVec = new Vector2((float) (19 - _comp.State.PosX), (float) (12 - _comp.State.PosY)).Normalized();
+
+        var dot = Vector2.Dot(dirVector, pointVec);
+
+        // angle between the two vectors (unsure of handedness yet)
+        Angle angle = Math.Acos(dot / dirVector.Length() * pointVec.Length());
+
+        // Find dot product with second vector rotated to tell if it's left or right side of the screen
+        var handednessDot = Vector2.Dot(dirVector, new Vector2(pointVec.Y, 0 - pointVec.X));
+
+        // How much of the screen to +- from 0.5
+        var screenRatio = angle.Degrees / (FOV / 2);
+
+        var absScreenRatio = handednessDot > 0 ? 0.5 - screenRatio : 0.5 + screenRatio;
+        // Finally, Find X;
+        float x = (float) absScreenRatio * InternalResX * ScaleFactor;
+
+        handle.DrawLine(new Vector2(x, 0), new Vector2(x, InternalResY * ScaleFactor), Color.Green);
+
+        // FINDING Y
+        var dist1Sq = Math.Pow(19f - _comp.State.PosX, 2) + Math.Pow(12f - _comp.State.PosY, 2);
+
+        // based pythagoras
+        var realDist = Math.Pow(0.25 + dist1Sq, 0.5);
     }
     private void Raycast()
     {
@@ -239,87 +286,9 @@ public sealed class S3DRenderer : Control
                     scaleIncrementor++;
                 }
 
-                // // FLOOR CASTING
-                // double floorXWall, floorYWall;
-
-                // if (!side && rayDirX > 0)
-                // {
-                //     floorXWall = mapX;
-                //     floorYWall = mapY + wallX;
-                // }
-                // else if (!side && rayDirX < 0)
-                // {
-                //     floorXWall = mapX + 1.0;
-                //     floorYWall = mapY + wallX;
-                // }
-                // else if (side && rayDirY > 0)
-                // {
-                //     floorXWall = mapX + wallX;
-                //     floorYWall = mapY;
-                // }
-                // else
-                // {
-                //     floorXWall = mapX + wallX;
-                //     floorYWall = mapY + 1.0;
-                // }
-
-                // double distWall, distPlayer, currentDist;
-
-                // distWall = perpWallDist;
-                // distPlayer = 0.0;
-
-                // for (int y = (int) drawEnd + 1; y < InternalResY; y++)
-                // {
-                //     currentDist = InternalResY / (2.0 * y - InternalResY); //you could make a small lookup table for this instead
-
-                //     double weight = (currentDist - distPlayer) / (distWall - distPlayer);
-
-                //     double currentFloorX = weight * floorXWall + (1.0 - weight) * _comp.State.PosX;
-                //     double currentFloorY = weight * floorYWall + (1.0 - weight) * _comp.State.PosY;
-
-                //     int floorTexX, floorTexY;
-                //     floorTexX = (int) Math.Ceiling(32 * (currentFloorX - Math.Floor(currentFloorX)));
-                //     floorTexY = (int) Math.Ceiling(32 * (currentFloorY - Math.Floor(currentFloorY)));
-
-                //     // TODO: This should take into account UI scale Cvars also.
-                //     int scaleIncrementorF = 1;
-                //     while (scaleIncrementorF <= scaleFactor * 2) // 2 dimensions, so *2
-                //     {
-                //         // ceiling
-                //         if (_worldMap[(int) currentFloorX, (int) currentFloorY, 1] != 0)
-                //         {
-                //             int cIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 1] - 1) + (floorTexY - 1) * _ceilingAtlas.Width - 1;
-                //             cIndex = Math.Max(cIndex, 0);
-
-                //             var rgbC = ceilingSpan[cIndex];
-                //             color = new Color(rgbC.R, rgbC.G, rgbC.B);
-                //             vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                //             vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
-
-                //             if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                //                 verts.Add(new DrawVertexUV2DColor(vec, color));
-                //         }
-
-                //         // floor
-                //         int fIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 2] - 1) + (floorTexY - 1) * _floorAtlas.Width - 1;
-
-                //         fIndex = Math.Max(fIndex, 0);
-
-                //         var rgbF = floorSpan[fIndex];
-                //         color = new Color(rgbF.R, rgbF.G, rgbF.B);
-                //         vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                //         vec.Y = y * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
-
-                //         if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                //             verts.Add(new DrawVertexUV2DColor(vec, color));
-
-                //         scaleIncrementorF++;
-                //     }
-                // }
-
                 i++;
             }
         }
-        _buffer = verts.ToArray();
+        _wallBuffer = verts.ToArray();
     }
 }
