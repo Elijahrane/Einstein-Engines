@@ -7,6 +7,7 @@ using Robust.Client.ResourceManagement;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Robust.Client.Utility;
+using Content.Client.Resources;
 
 namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
 
@@ -18,6 +19,8 @@ public sealed class S3DRenderer : Control
     private readonly IResourceCache _resourceCache;
     private const int InternalResX = 320;
     private const int InternalResY = 240;
+    private const float FOV = 66; // note this is derived from PlaneX, but not calculated at run time here because why would we
+    private const float ScaleFactor = 2;
     private DrawVertexUV2DColor[] _buffer = Array.Empty<DrawVertexUV2DColor>();
     private S3DArcadeComponent _comp;
     private int[,,] _worldMap;
@@ -25,9 +28,8 @@ public sealed class S3DRenderer : Control
     private readonly Image<Rgba32> _floorAtlas;
     private readonly Image<Rgba32> _ceilingAtlas;
     // TODO: Could this be just a straight texture? We're not skewing it at all, just scrolling.
-    private readonly Image<Rgba32> _skybox;
     private long _tick = 0;
-    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas, Image<Rgba32> skybox)
+    public S3DRenderer(IResourceCache resourceCache, S3DArcadeComponent comp, int[,,] worldMap, Image<Rgba32> wallAtlas, Image<Rgba32> floorAtlas, Image<Rgba32> ceilingAtlas)
     {
         _resourceCache = resourceCache;
         _comp = comp;
@@ -35,7 +37,6 @@ public sealed class S3DRenderer : Control
         _wallAtlas = wallAtlas;
         _floorAtlas = floorAtlas;
         _ceilingAtlas = ceilingAtlas;
-        _skybox = skybox;
     }
     protected override void Draw(DrawingHandleScreen handle)
     {
@@ -56,6 +57,8 @@ public sealed class S3DRenderer : Control
 
         _tick = _comp.State.Tick;
 
+        DrawSkybox(handle);
+
         // There's a size limit of 65532 elements.
         int i = 0;
         while (i < _buffer.Length)
@@ -68,6 +71,40 @@ public sealed class S3DRenderer : Control
             i += 65531;
         }
     }
+
+    private void DrawSkybox(DrawingHandleScreen handle)
+    {
+        var skybox = _resourceCache.GetTexture("/Textures/DeltaV/Other/S3D/skybox.png");
+
+        float drawEnd = 0.5f * InternalResY * ScaleFactor;
+
+        // we are assuming skyboxes are designed to be equal to InternalResX and InternalResY
+        // Shows how much we need to scale the skybox.
+        var fovRatio = FOV / 360f;
+
+        var xScale = InternalResX * ScaleFactor;
+        var xFOV = skybox.Width * fovRatio;
+
+        var scrollFactor = (float) (new Vector2((float) _comp.State.DirX, (float) _comp.State.DirY).ToAngle().Degrees + 180f) / 360f;
+        scrollFactor -= (float) Math.Floor(scrollFactor);
+
+        var scrollOffset = (1 - scrollFactor) * skybox.Width;
+
+        // simple case: we don't go over image boundaries
+        if (xFOV + scrollOffset < skybox.Width)
+        {
+            handle.DrawTextureRectRegion(skybox, new UIBox2(Vector2.Zero, new Vector2(xScale, drawEnd)), new UIBox2(new Vector2(scrollOffset, 0), new Vector2(xFOV + scrollOffset, skybox.Height)));
+        }
+        // complex case: we have to split into 2 images
+        else
+        {
+            // Image 1: The bit that scrolled over
+            var overscroll = Math.Abs(skybox.Width - xFOV - scrollOffset);
+            var imgRatio = 1 - overscroll / xFOV;
+            handle.DrawTextureRectRegion(skybox, new UIBox2(0, 0, imgRatio * xScale, drawEnd), new UIBox2(new Vector2(skybox.Width - xFOV + overscroll, 0), new Vector2(skybox.Width, skybox.Height)));
+            handle.DrawTextureRectRegion(skybox, new UIBox2(imgRatio * xScale, 0, xScale, drawEnd), new UIBox2(Vector2.Zero, new Vector2(overscroll, skybox.Height)));
+        }
+    }
     private void Raycast()
     {
         // a lot of this is adapted from https://lodev.org/cgtutor/raycasting.html (which is BSD licensed.) Thank you Lode Vandevenne.
@@ -77,40 +114,9 @@ public sealed class S3DRenderer : Control
         var wallSpan = _wallAtlas.GetPixelSpan();
         var floorSpan = _floorAtlas.GetPixelSpan();
         var ceilingSpan = _ceilingAtlas.GetPixelSpan();
-        var skyboxSpan = _skybox.GetPixelSpan();
-
-        var scrollFactor = (float) (new Vector2((float) _comp.State.DirX, (float) _comp.State.DirY).ToAngle().Degrees + 180f) / 360f;
-        scrollFactor -= (float) Math.Floor(scrollFactor);
 
         int scaleFactor = 2;
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
-
-        // Skybox
-        // TODO: Skip if level has no skybox
-        // TODO: See if this can be folded into the ceiling drawing part based on ceiling texture
-        for (int y = 0; y < InternalResY / 2; y++)
-        {
-            for (int x = 0; x < InternalResX; x++)
-            {
-                // Scale X by FOV
-                var texX = (int) (x * (66f / 360f) + (int) ((1 - scrollFactor) * 320)) % 320;
-
-                var rgb = skyboxSpan[texX + 320 * y];
-
-                color = new Color(rgb.R, rgb.G, rgb.B);
-
-                int scaleIncrementor = 1;
-                while (scaleIncrementor <= scaleFactor * 2) // 2 dimensions, so *2
-                {
-                    vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                    vec.Y = y * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
-
-                    verts.Add(new DrawVertexUV2DColor(vec, color));
-
-                    scaleIncrementor++;
-                }
-            }
-        }
 
         // Wall Casting
         for (int x = 0; x < InternalResX; x++)
@@ -233,83 +239,83 @@ public sealed class S3DRenderer : Control
                     scaleIncrementor++;
                 }
 
-                // FLOOR CASTING
-                double floorXWall, floorYWall;
+                // // FLOOR CASTING
+                // double floorXWall, floorYWall;
 
-                if (!side && rayDirX > 0)
-                {
-                    floorXWall = mapX;
-                    floorYWall = mapY + wallX;
-                }
-                else if (!side && rayDirX < 0)
-                {
-                    floorXWall = mapX + 1.0;
-                    floorYWall = mapY + wallX;
-                }
-                else if (side && rayDirY > 0)
-                {
-                    floorXWall = mapX + wallX;
-                    floorYWall = mapY;
-                }
-                else
-                {
-                    floorXWall = mapX + wallX;
-                    floorYWall = mapY + 1.0;
-                }
+                // if (!side && rayDirX > 0)
+                // {
+                //     floorXWall = mapX;
+                //     floorYWall = mapY + wallX;
+                // }
+                // else if (!side && rayDirX < 0)
+                // {
+                //     floorXWall = mapX + 1.0;
+                //     floorYWall = mapY + wallX;
+                // }
+                // else if (side && rayDirY > 0)
+                // {
+                //     floorXWall = mapX + wallX;
+                //     floorYWall = mapY;
+                // }
+                // else
+                // {
+                //     floorXWall = mapX + wallX;
+                //     floorYWall = mapY + 1.0;
+                // }
 
-                double distWall, distPlayer, currentDist;
+                // double distWall, distPlayer, currentDist;
 
-                distWall = perpWallDist;
-                distPlayer = 0.0;
+                // distWall = perpWallDist;
+                // distPlayer = 0.0;
 
-                for (int y = (int) drawEnd + 1; y < InternalResY; y++)
-                {
-                    currentDist = InternalResY / (2.0 * y - InternalResY); //you could make a small lookup table for this instead
+                // for (int y = (int) drawEnd + 1; y < InternalResY; y++)
+                // {
+                //     currentDist = InternalResY / (2.0 * y - InternalResY); //you could make a small lookup table for this instead
 
-                    double weight = (currentDist - distPlayer) / (distWall - distPlayer);
+                //     double weight = (currentDist - distPlayer) / (distWall - distPlayer);
 
-                    double currentFloorX = weight * floorXWall + (1.0 - weight) * _comp.State.PosX;
-                    double currentFloorY = weight * floorYWall + (1.0 - weight) * _comp.State.PosY;
+                //     double currentFloorX = weight * floorXWall + (1.0 - weight) * _comp.State.PosX;
+                //     double currentFloorY = weight * floorYWall + (1.0 - weight) * _comp.State.PosY;
 
-                    int floorTexX, floorTexY;
-                    floorTexX = (int) Math.Ceiling(32 * (currentFloorX - Math.Floor(currentFloorX)));
-                    floorTexY = (int) Math.Ceiling(32 * (currentFloorY - Math.Floor(currentFloorY)));
+                //     int floorTexX, floorTexY;
+                //     floorTexX = (int) Math.Ceiling(32 * (currentFloorX - Math.Floor(currentFloorX)));
+                //     floorTexY = (int) Math.Ceiling(32 * (currentFloorY - Math.Floor(currentFloorY)));
 
-                    // TODO: This should take into account UI scale Cvars also.
-                    int scaleIncrementorF = 1;
-                    while (scaleIncrementorF <= scaleFactor * 2) // 2 dimensions, so *2
-                    {
-                        // ceiling
-                        if (_worldMap[(int) currentFloorX, (int) currentFloorY, 1] != 0)
-                        {
-                            int cIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 1] - 1) + (floorTexY - 1) * _ceilingAtlas.Width - 1;
-                            cIndex = Math.Max(cIndex, 0);
+                //     // TODO: This should take into account UI scale Cvars also.
+                //     int scaleIncrementorF = 1;
+                //     while (scaleIncrementorF <= scaleFactor * 2) // 2 dimensions, so *2
+                //     {
+                //         // ceiling
+                //         if (_worldMap[(int) currentFloorX, (int) currentFloorY, 1] != 0)
+                //         {
+                //             int cIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 1] - 1) + (floorTexY - 1) * _ceilingAtlas.Width - 1;
+                //             cIndex = Math.Max(cIndex, 0);
 
-                            var rgbC = ceilingSpan[cIndex];
-                            color = new Color(rgbC.R, rgbC.G, rgbC.B);
-                            vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                            vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+                //             var rgbC = ceilingSpan[cIndex];
+                //             color = new Color(rgbC.R, rgbC.G, rgbC.B);
+                //             vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                //             vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
 
-                            if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                                verts.Add(new DrawVertexUV2DColor(vec, color));
-                        }
+                //             if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
+                //                 verts.Add(new DrawVertexUV2DColor(vec, color));
+                //         }
 
-                        // floor
-                        int fIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 2] - 1) + (floorTexY - 1) * _floorAtlas.Width - 1;
+                //         // floor
+                //         int fIndex = floorTexX + 32 * (_worldMap[(int) Math.Floor(currentFloorX), (int) Math.Floor(currentFloorY), 2] - 1) + (floorTexY - 1) * _floorAtlas.Width - 1;
 
-                        fIndex = Math.Max(fIndex, 0);
+                //         fIndex = Math.Max(fIndex, 0);
 
-                        var rgbF = floorSpan[fIndex];
-                        color = new Color(rgbF.R, rgbF.G, rgbF.B);
-                        vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                        vec.Y = y * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
+                //         var rgbF = floorSpan[fIndex];
+                //         color = new Color(rgbF.R, rgbF.G, rgbF.B);
+                //         vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementorF / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
+                //         vec.Y = y * scaleFactor + scaleIncrementorF % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
 
-                        if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                            verts.Add(new DrawVertexUV2DColor(vec, color));
+                //         if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
+                //             verts.Add(new DrawVertexUV2DColor(vec, color));
 
-                        scaleIncrementorF++;
-                    }
-                }
+                //         scaleIncrementorF++;
+                //     }
+                // }
 
                 i++;
             }

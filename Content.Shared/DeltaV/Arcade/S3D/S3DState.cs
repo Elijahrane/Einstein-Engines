@@ -13,7 +13,6 @@ public struct S3DState
     public double PlaneY;
     public InputFlags Input;
     public long Tick;
-
     public S3DState(double posX, double posY, double dirX, double dirY, double planeX, double planeY, InputFlags input, long tick = 1)
     {
         PosX = posX;
