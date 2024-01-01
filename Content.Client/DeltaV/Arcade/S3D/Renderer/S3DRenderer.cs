@@ -21,7 +21,8 @@ public sealed class S3DRenderer : Control
     private readonly IResourceCache _resourceCache;
     private const int InternalResX = 320;
     private const int InternalResY = 240;
-    private const float FOV = 66; // note this is derived from PlaneX, but not calculated at run time here because why would we
+    private const float FOV = 66; // changeable via planeX but precalculated
+    private const float VFOV = 81.7771f; // VFOV=2∗atan(tan(FOV/2)∗aspect ratio)
     private const float ScaleFactor = 2;
     private const float CameraHeight = 0.5f;
 
@@ -64,6 +65,7 @@ public sealed class S3DRenderer : Control
         _tick = _comp.State.Tick;
 
         DrawSkybox(handle);
+        DrawFloors(handle);
 
         // There's a size limit of 65532 elements.
         int i = 0;
@@ -76,7 +78,6 @@ public sealed class S3DRenderer : Control
 
             i += 65531;
         }
-        DrawFloors(handle);
     }
 
     private void DrawSkybox(DrawingHandleScreen handle)
@@ -119,38 +120,26 @@ public sealed class S3DRenderer : Control
     /// <param name="handle"></param>
     private void DrawFloors(DrawingHandleBase handle)
     {
-        DrawVertexUV2DColor[] xDebugBuffer = Array.Empty<DrawVertexUV2DColor>();
+        var tex = _resourceCache.GetTexture("/Textures/Tiles/laundry.png");
+        DrawVertexUV2DColor[] floorBuffer = new DrawVertexUV2DColor[6];
 
-        // FINDING X
+        // top left
+        var tleft = FloorCoordsToScreenCoords(new Vector2(19, 12));
+        // top right
+        var tright = FloorCoordsToScreenCoords(new Vector2(20, 12));
+        // bottom left
+        var bleft = FloorCoordsToScreenCoords(new Vector2(19, 11));
+        // bottom right
+        var bright = FloorCoordsToScreenCoords(new Vector2(20, 11));
 
-        // dir vector for center of camera
-        var dirVector = new Vector2((float) _comp.State.DirX, (float) _comp.State.DirY);
+        floorBuffer[0] = new DrawVertexUV2DColor(tleft, Vector2.Zero, Color.White);
+        floorBuffer[1] = new DrawVertexUV2DColor(tright, new Vector2(1, 0), Color.White);
+        floorBuffer[2] = new DrawVertexUV2DColor(bleft, new Vector2(0, 1), Color.White);
+        floorBuffer[3] = floorBuffer[1];
+        floorBuffer[4] = floorBuffer[2];
+        floorBuffer[5] = new DrawVertexUV2DColor(bright, Vector2.One, Color.White);
 
-        // dir vector from our pos to point
-        var pointVec = new Vector2((float) (19 - _comp.State.PosX), (float) (12 - _comp.State.PosY)).Normalized();
-
-        var dot = Vector2.Dot(dirVector, pointVec);
-
-        // angle between the two vectors (unsure of handedness yet)
-        Angle angle = Math.Acos(dot / dirVector.Length() * pointVec.Length());
-
-        // Find dot product with second vector rotated to tell if it's left or right side of the screen
-        var handednessDot = Vector2.Dot(dirVector, new Vector2(pointVec.Y, 0 - pointVec.X));
-
-        // How much of the screen to +- from 0.5
-        var screenRatio = angle.Degrees / (FOV / 2);
-
-        var absScreenRatio = handednessDot > 0 ? 0.5 - screenRatio : 0.5 + screenRatio;
-        // Finally, Find X;
-        float x = (float) absScreenRatio * InternalResX * ScaleFactor;
-
-        handle.DrawLine(new Vector2(x, 0), new Vector2(x, InternalResY * ScaleFactor), Color.Green);
-
-        // FINDING Y
-        var dist1Sq = Math.Pow(19f - _comp.State.PosX, 2) + Math.Pow(12f - _comp.State.PosY, 2);
-
-        // based pythagoras
-        var realDist = Math.Pow(0.25 + dist1Sq, 0.5);
+        handle.DrawPrimitives(DrawPrimitiveTopology.TriangleList, Texture.White, floorBuffer);
     }
     private void Raycast()
     {
@@ -290,5 +279,42 @@ public sealed class S3DRenderer : Control
             }
         }
         _wallBuffer = verts.ToArray();
+    }
+
+    private Vector2 FloorCoordsToScreenCoords(Vector2 floorCoords)
+    {
+        // FINDING X
+
+        // dir vector for center of camera
+        var dirVector = new Vector2((float) _comp.State.DirX, (float) _comp.State.DirY);
+
+        var pointVec = new Vector2((float) (floorCoords.X - _comp.State.PosX), (float) (floorCoords.Y - _comp.State.PosY));
+
+        // dir vector from our pos to point
+        var pointVecNormalized = pointVec.Normalized();
+
+        var dot = Vector2.Dot(dirVector, pointVecNormalized);
+
+        // angle between the two vectors (unsure of handedness yet)
+        Angle angleX = Math.Acos(dot / dirVector.Length() * pointVecNormalized.Length());
+
+        // Find dot product with second vector rotated to tell if it's left or right side of the screen
+        var handednessDot = Vector2.Dot(dirVector, new Vector2(pointVecNormalized.Y, 0 - pointVecNormalized.X));
+
+        // How much of the screen to +- from 0.5
+        var screenRatio = angleX.Degrees / (FOV / 2);
+
+        var absScreenRatio = handednessDot > 0 ? 0.5 - screenRatio : 0.5 + screenRatio;
+        // Finally, Find X;
+        float x = (float) absScreenRatio * InternalResX * ScaleFactor;
+
+        // FINDING Y
+        // 1) Make a triangle from the camera to the point, get angle from point to camera
+        Angle angleY = 0.5 * Math.PI - Math.Atan(pointVec.Length() / 0.5);
+
+        // 2) That's literally about it
+        float y = (float) (0.5 + (angleY.Degrees / (VFOV / 2))) * InternalResY * ScaleFactor;
+
+        return new Vector2(x, y);
     }
 }
