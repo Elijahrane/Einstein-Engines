@@ -296,13 +296,13 @@ public sealed class S3DRenderer : Control
         var dot = Vector2.Dot(dirVector, pointVecNormalized);
 
         // angle between the two vectors (unsure of handedness yet)
-        Angle angleX = Math.Acos(dot / dirVector.Length() * pointVecNormalized.Length());
+        Angle angleX = Math.Acos(dot / (dirVector.Length() * pointVecNormalized.Length()));
 
         // Find dot product with second vector rotated to tell if it's left or right side of the screen
         var handednessDot = Vector2.Dot(dirVector, new Vector2(pointVecNormalized.Y, 0 - pointVecNormalized.X));
 
         // How much of the screen to +- from 0.5
-        var screenRatio = angleX.Degrees / (FOV / 2);
+        var screenRatio = angleX.Degrees / FOV;
 
         var absScreenRatio = handednessDot > 0 ? 0.5 - screenRatio : 0.5 + screenRatio;
         // Finally, Find X;
