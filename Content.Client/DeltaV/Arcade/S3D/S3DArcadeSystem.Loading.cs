@@ -11,9 +11,14 @@ namespace Content.Client.DeltaV.Arcade.S3D
 {
     public sealed partial class S3DArcadeSystem : SharedS3DArcadeSystem
     {
-        public S3DRenderer NewRenderer(S3DArcadeComponent component)
+        public S3DRenderer NewRenderer(S3DArcadeComponent component, string map = "e1m1.s3d")
         {
-            return new S3DRenderer(_resourceCache, component, component.WorldMap, LoadWallAtlas(), LoadFloorAtlas(), LoadCeilingAtlas(), LoadSkybox());
+            LoadWorldMap(map, out var worldMap);
+            if (worldMap == null)
+            {
+                throw new Exception("Cannot load " + map);
+            }
+            return new S3DRenderer(_resourceCache, component, worldMap, LoadWallAtlas(), LoadFloorAtlas(), LoadCeilingAtlas(), LoadSkybox());
         }
 
         /// <summary>
