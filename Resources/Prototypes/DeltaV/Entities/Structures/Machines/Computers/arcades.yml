@@ -1,0 +1,29 @@
+- type: entity
+  parent: ArcadeBase
+  id: ArcadeS3D
+  name: S3D # The S stands for space. Could be renamed maybe.
+  description: Get Psyched!
+  components:
+  - type: Sprite
+    sprite: Structures/Machines/arcade.rsi
+    layers:
+    - map: ["computerLayerBody"]
+      state: arcade
+    - map: ["computerLayerScreen"]
+      state: blockgame
+  - type: S3DArcade
+  - type: ActivatableUI
+    key: enum.S3DUiKey.Key
+  - type: ActivatableUIRequiresPower
+  - type: WiresPanel
+  - type: Wires
+    layoutId: Arcade
+    boardName: wires-board-name-arcade
+  - type: UserInterface
+    interfaces:
+      - key: enum.S3DUiKey.Key
+        type: S3DBoundUserInterface
+      - key: enum.WiresUiKey.Key
+        type: WiresBoundUserInterface
+  # - type: Computer
+  #   board: BlockGameArcadeComputerCircuitboard
