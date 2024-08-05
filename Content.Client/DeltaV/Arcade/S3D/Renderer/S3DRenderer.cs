@@ -85,8 +85,6 @@ public sealed class S3DRenderer : Control
         List<DrawVertexUV2DColor> verts = new List<DrawVertexUV2DColor>();
 
         // Skybox
-        // TODO: Skip if level has no skybox
-        // TODO: See if this can be folded into the ceiling drawing part based on ceiling texture
         for (int y = 0; y < InternalResY / 2; y++)
         {
             for (int x = 0; x < InternalResX; x++)
@@ -152,15 +150,6 @@ public sealed class S3DRenderer : Control
 
                     if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
                         verts.Add(new DrawVertexUV2DColor(vec, color));
-
-                    // Readd after wall / ceiling tile support.
-                    // var rgbC = ceilingSpan[texX + 32 * (texY - 1) - 1];
-                    // color = new Color(rgbC.R, rgbC.G, rgbC.B);
-                    // vec.X = (x + 1) * scaleFactor + ((int) Math.Ceiling((double) scaleIncrementor / scaleFactor) - 1); // 0 0 1 1; 0 0 0 1 1 1 2 2 2; etc.
-                    // vec.Y = (InternalResY - y) * scaleFactor + scaleIncrementor % scaleFactor; // 1 0 1 0; 1 2 0 1 2 0 1 2 0; etc.
-
-                    // if (vec.Y > 0 && vec.Y < InternalResY * scaleFactor)
-                    //     verts.Add(new DrawVertexUV2DColor(vec, color));
 
                     scaleIncrementor++;
                 }
