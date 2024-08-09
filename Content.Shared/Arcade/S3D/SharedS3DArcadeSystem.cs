@@ -1,4 +1,4 @@
-namespace Content.Shared.DeltaV.Arcade.S3D;
+namespace Content.Shared.Arcade.S3D;
 
 public abstract class SharedS3DArcadeSystem : EntitySystem
 {

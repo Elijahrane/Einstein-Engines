@@ -1,6 +1,6 @@
 using Robust.Shared.Player;
 
-namespace Content.Shared.DeltaV.Arcade.S3D;
+namespace Content.Shared.Arcade.S3D;
 
 [RegisterComponent]
 public sealed partial class S3DArcadeComponent : Component

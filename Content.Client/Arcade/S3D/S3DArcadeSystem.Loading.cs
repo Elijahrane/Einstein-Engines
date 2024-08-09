@@ -1,9 +1,9 @@
-using Content.Client.DeltaV.Arcade.S3D.Renderer;
-using Content.Shared.DeltaV.Arcade.S3D;
+using Content.Client.Arcade.S3D.Renderer;
+using Content.Shared.Arcade.S3D;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace Content.Client.DeltaV.Arcade.S3D
+namespace Content.Client.Arcade.S3D
 {
     public sealed partial class S3DArcadeSystem : SharedS3DArcadeSystem
     {
@@ -19,7 +19,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
         /// </summary>
         private Image<Rgba32> LoadWallAtlas()
         {
-            if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/wall_atlas.png", out var stream))
+            if (!_resourceManager.TryContentFileRead("/Textures/Other/S3D/wall_atlas.png", out var stream))
             {
                 Logger.Error("Failed to load wall atlas for S3D!");
                 return new Image<Rgba32>(512, 64);
@@ -30,7 +30,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
 
         private Image<Rgba32> LoadFloorAtlas()
         {
-            if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/floor_atlas.png", out var stream))
+            if (!_resourceManager.TryContentFileRead("/Textures/Other/S3D/floor_atlas.png", out var stream))
             {
                 Logger.Error("Failed to load floor atlas for S3D!");
                 return new Image<Rgba32>(32, 32);
@@ -41,7 +41,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
 
         private Image<Rgba32> LoadCeilingAtlas()
         {
-            if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/ceiling_atlas.png", out var stream))
+            if (!_resourceManager.TryContentFileRead("/Textures/Other/S3D/ceiling_atlas.png", out var stream))
             {
                 Logger.Error("Failed to load ceiling atlas for S3D!");
                 return new Image<Rgba32>(32, 32);
@@ -52,7 +52,7 @@ namespace Content.Client.DeltaV.Arcade.S3D
 
         private Image<Rgba32> LoadSkybox()
         {
-            if (!_resourceManager.TryContentFileRead("/Textures/DeltaV/Other/S3D/skybox.png", out var stream))
+            if (!_resourceManager.TryContentFileRead("/Textures/Other/S3D/skybox.png", out var stream))
             {
                 Logger.Error("Failed to load skybox for S3D!");
                 return new Image<Rgba32>(320, 120);

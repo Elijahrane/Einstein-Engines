@@ -1,8 +1,8 @@
-using Content.Shared.DeltaV.Arcade.S3D;
+using Content.Shared.Arcade.S3D;
 using Robust.Shared.ContentPack;
 using Robust.Client.ResourceManagement;
 
-namespace Content.Client.DeltaV.Arcade.S3D
+namespace Content.Client.Arcade.S3D
 {
     public sealed partial class S3DArcadeSystem : SharedS3DArcadeSystem
     {

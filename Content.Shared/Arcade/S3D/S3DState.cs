@@ -1,6 +1,6 @@
 using Robust.Shared.Serialization;
 
-namespace Content.Shared.DeltaV.Arcade.S3D;
+namespace Content.Shared.Arcade.S3D;
 
 [Serializable, NetSerializable]
 public struct S3DState

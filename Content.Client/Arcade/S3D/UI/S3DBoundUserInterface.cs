@@ -1,5 +1,5 @@
-namespace Content.Client.DeltaV.Arcade.S3D.UI;
-using Content.Shared.DeltaV.Arcade.S3D;
+namespace Content.Client.Arcade.S3D.UI;
+using Content.Shared.Arcade.S3D;
 using Content.Shared.Input;
 using Robust.Shared.Input;
 

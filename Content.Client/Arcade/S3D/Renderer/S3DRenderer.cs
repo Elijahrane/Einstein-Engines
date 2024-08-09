@@ -1,14 +1,14 @@
 using System.Numerics;
 using Robust.Client.Graphics;
 using Robust.Client.UserInterface;
-using Content.Shared.DeltaV.Arcade.S3D;
+using Content.Shared.Arcade.S3D;
 using Color = Robust.Shared.Maths.Color;
 using Robust.Client.ResourceManagement;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Robust.Client.Utility;
 
-namespace Content.Client.DeltaV.Arcade.S3D.Renderer;
+namespace Content.Client.Arcade.S3D.Renderer;
 
 /// <summary>
 /// Controls the rendering for the S3D arcade. Logic is in the client's S3DArcadeSystem.cs
