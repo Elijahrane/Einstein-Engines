@@ -250,3 +250,8 @@ ghost-role-information-artifact-name = Sentient Artifact
 ghost-role-information-artifact-description =
       Enact your eldritch whims.
       Forcibly activate your nodes for good or for evil.
+
+ghost-role-information-machine-elf-name = Machine Elf
+ghost-role-information-machine-elf-description =
+      Similar to a telegnostic projection, wander around and talk in telepathy.
+      People on drugs can see you.

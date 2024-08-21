@@ -1,0 +1,11 @@
+# Ghost role for people that like chilling out as a telgnostic projection
+- type: entity
+  name: machine elf
+  parent: MobObserverTelegnostic
+  id: MobMachineElf
+  components:
+  - type: GhostRole
+    allowSpeech: false
+    allowMovement: true
+    name: ghost-role-information-machine-elf-name
+    description: ghost-role-information-machine-elf-description
